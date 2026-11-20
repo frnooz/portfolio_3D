@@ -2,12 +2,49 @@
 <html lang="fr">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Salle serveur — Noah Guglielmino</title>
+    <meta name="description" content="Explore le portfolio de Noah Guglielmino, étudiant BUT R&amp;T DevCloud, sous la forme d'une salle serveur en 3D pilotée par un petit robot de maintenance.">
+    <meta name="theme-color" content="#06080a">
     <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   </head>
   <body>
-    <main id="app"></main>
+    <a class="skip-link" href="../classique/">Passer à la version classique (sans 3D)</a>
+
+    <h1 id="scene-title" class="sr-only" tabindex="-1">Salle serveur — portfolio 3D de Noah Guglielmino</h1>
+    <p id="scene-desc" class="sr-only">
+      Une salle serveur en 3D que tu explores avec un robot de maintenance. Déplace-le avec les flèches,
+      ZQSD ou WASD. Chaque baie est un projet ou une compétence : en t'approchant, un panneau s'ouvre.
+      Le bouton « Plan » liste toutes les baies et y envoie le robot automatiquement.
+    </p>
+
+    <div class="stage" aria-hidden="true">
+      <canvas id="scene"></canvas>
+    </div>
+
+    <header class="hud-top">
+      <a class="hud-brand" href="../">
+        <strong>Noah Guglielmino</strong>
+        <span>DC-01 · salle serveur</span>
+      </a>
+      <nav class="hud-actions" aria-label="Commandes de la salle">
+        <a class="hud-btn" href="../classique/"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 3h12M2 8h12M2 13h8"/></svg><span class="lbl">Version classique</span></a>
+      </nav>
+    </header>
+
+    <ul class="hud-help" aria-label="Commandes clavier">
+      <li><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> se déplacer</li>
+      <li><kbd>Maj</kbd> turbo</li>
+      <li><kbd>Entrée</kbd> lire le panneau</li>
+    </ul>
+
+    <section id="panel" class="panel" aria-labelledby="panel-title" hidden></section>
+    <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <noscript>
+      <p class="noscript">La salle 3D a besoin de JavaScript. <a href="../classique/">Ouvrir la version classique</a>.</p>
+    </noscript>
+
     <script type="module" src="../src/three/main.ts"></script>
   </body>
 </html>

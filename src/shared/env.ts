@@ -1,13 +1,12 @@
 /** Détection des capacités du navigateur — partagée par l'accueil et la scène 3D. */
 
+/** Three.js (r163+) exige WebGL 2 : on teste précisément ça. */
 export function hasWebGL(): boolean {
   try {
     const canvas = document.createElement('canvas');
-    const gl =
-      canvas.getContext('webgl2', { failIfMajorPerformanceCaveat: true }) ??
-      canvas.getContext('webgl', { failIfMajorPerformanceCaveat: true });
+    const gl = canvas.getContext('webgl2');
     if (!gl) return false;
-    const lose = (gl as WebGLRenderingContext).getExtension('WEBGL_lose_context');
+    const lose = gl.getExtension('WEBGL_lose_context');
     lose?.loseContext();
     return true;
   } catch {
