@@ -8,8 +8,30 @@
     <meta name="theme-color" content="#06080a">
     <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   </head>
-  <body>
+  <body class="is-booting">
     <a class="skip-link" href="../classique/">Passer à la version classique (sans 3D)</a>
+
+    <div id="boot" class="boot">
+      <div class="boot-inner">
+        <div class="boot-head"><strong>DC-01</strong><span>noah guglielmino · salle serveur</span></div>
+        <div class="boot-log" aria-hidden="true"></div>
+        <div class="boot-foot">
+          <div class="boot-bar" role="progressbar" aria-label="Chargement de la salle serveur" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+          <span class="boot-pct" aria-hidden="true">0 %</span>
+          <button type="button" class="boot-skip">Passer <kbd>Entrée</kbd></button>
+        </div>
+      </div>
+      <div id="motion-gate" class="motion-gate" hidden>
+        <div class="mg-card" role="dialog" aria-modal="true" aria-labelledby="mg-title">
+          <h2 id="mg-title">Animations réduites détectées</h2>
+          <p>Ton système demande de limiter les animations. La salle 3D bouge beaucoup : la version classique contient exactement le même contenu, sans mouvement.</p>
+          <div class="mg-actions">
+            <a class="primary" href="../classique/">Version classique (recommandé)</a>
+            <button type="button" data-enter>Entrer quand même dans la salle</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <h1 id="scene-title" class="sr-only" tabindex="-1">Salle serveur — portfolio 3D de Noah Guglielmino</h1>
     <p id="scene-desc" class="sr-only">

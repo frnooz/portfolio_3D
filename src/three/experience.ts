@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { damp } from './core/math';
+import { clamp, damp, easeInOutCubic, smoothstep } from './core/math';
 import { buildLayout, LEGACY, NOC, RACK, SPAWN, type Item, type Layout } from './world/layout';
 import { Racks, createSharedUniforms, type SharedUniforms } from './world/racks';
 import { Robot } from './world/robot';
@@ -47,6 +47,11 @@ export class Experience {
   readonly atmosphere: Atmosphere;
   readonly cables: Cables;
   private pingT = -10;
+  private readonly keyLight: THREE.DirectionalLight;
+  private introOn = false;
+  private introT = 0;
+  private woke = false;
+  private readonly initialHash = window.location.hash;
   private readonly pingOrigin = new THREE.Vector2();
   private readonly canvas: HTMLCanvasElement;
   private readonly items: Item[];
@@ -110,6 +115,7 @@ export class Experience {
     const key = new THREE.DirectionalLight('#e3edff', 1.25);
     key.position.set(-4, 14, 10);
     this.scene.add(key);
+    this.keyLight = key;
     const rim = new THREE.DirectionalLight('#ff9d55', 0.5);
     rim.position.set(8, 6, -14);
     this.scene.add(rim);
@@ -168,9 +174,82 @@ export class Experience {
     this.rig.snap(this.robot.position);
     window.addEventListener('resize', this.resize);
     window.addEventListener('hashchange', () => this.followHash());
-    const initialHash = window.location.hash;
+  }
+
+  /** Compile tous les shaders pendant l'écran de boot (pas de saccade au premier rendu). */
+  async compile() {
+    this.uniforms.uPowerRadius.value = 999;
+    await this.renderer.compileAsync(this.scene, this.rig.camera);
+    this.post.render(0, 0);
+  }
+
+  /** Lance la boucle. Avec `intro` : la salle s'allume en vague et la caméra plonge sur le robot. */
+  start({ intro }: { intro: boolean }) {
+    this.introOn = intro;
+    this.introT = 0;
+    if (intro) {
+      this.uniforms.uPowerRadius.value = 0;
+      this.uniforms.uPowerOrigin.value.set(0, NOC.z + 1.5);
+      this.rig.cinematic = 1;
+      this.rig.cinePos.set(4, 27, 21);
+      this.rig.cineLook.set(0, 0, -3.2);
+      this.robot.setMood('sleep', 99);
+      this.keyLight.intensity = 0.1;
+      this.input.enabled = false;
+    } else {
+      this.finishIntro();
+    }
+    this.clock.getDelta();
     this.renderer.setAnimationLoop(this.tick);
-    if (initialHash) window.setTimeout(() => this.followHash(initialHash), 600);
+  }
+
+  private updateIntro(dt: number) {
+    this.introT += dt;
+    const t = this.introT;
+    // n'importe quelle touche de déplacement après 1 s = on saute l'intro
+    if (t > 1 && this.input.manualActive) this.introT = 99;
+    this.uniforms.uPowerRadius.value = Math.max(0, (t - 0.5) * 13);
+    this.rig.cinematic = 1 - easeInOutCubic(clamp((t - 1.1) / 2.7, 0, 1));
+    this.keyLight.intensity = 0.1 + 1.15 * smoothstep(0.6, 3.0, t);
+    this.post.bloomBoost = Math.sin(clamp((t - 0.5) / 2.4, 0, 1) * Math.PI) * 0.5;
+    if (!this.woke && t > 1.3) {
+      this.woke = true;
+      this.robot.setMood('happy', 1.8);
+      this.sound.boot();
+    }
+    if (t > 1.2) this.input.enabled = !this.map.isOpen;
+    if (t >= 3.9) this.finishIntro();
+  }
+
+  private finishIntro() {
+    this.introOn = false;
+    this.uniforms.uPowerRadius.value = 999;
+    this.rig.cinematic = 0;
+    this.keyLight.intensity = 1.25;
+    this.post.bloomBoost = 0;
+    this.input.enabled = !this.map.isOpen;
+    if (!this.woke) {
+      this.woke = true;
+      this.robot.setMood('happy', 1.2);
+    }
+    document.body.classList.remove('is-booting');
+    if (this.initialHash) window.setTimeout(() => this.followHash(this.initialHash), 300);
+    else
+      window.setTimeout(
+        () =>
+          this.toast.show(
+            matchMedia('(pointer: coarse)').matches
+              ? 'Glisse pour piloter le robot, touche une baie pour y aller.'
+              : 'Pilote le robot avec ZQSD, WASD ou les flèches — ou clique sur une baie.',
+            'info',
+            5200,
+          ),
+        400,
+      );
+    if (document.getElementById('btn-sound')?.dataset.wanted === 'on') {
+      // le navigateur exige un geste : on rappelle juste que le son était activé
+      window.setTimeout(() => this.toast.show('Son coupé — le bouton « Son » le réactive.', 'info', 3000), 6200);
+    }
   }
 
   // ── son & ping ─────────────────────────────────────────
@@ -453,7 +532,8 @@ export class Experience {
     const fu = this.room.floorUniforms;
     fu.uPing.value.set(this.pingOrigin.x, this.pingOrigin.y, pa * 16);
     fu.uPingAmt.value = pa < 1.8 ? Math.max(0, 1 - pa / 1.8) : 0;
-    this.post.bloomBoost = fu.uPingAmt.value * 0.6;
+    if (this.introOn) this.updateIntro(dt);
+    else this.post.bloomBoost = fu.uPingAmt.value * 0.6;
 
     const pool = fu.uActivePool.value;
     if (this.active) pool.set(this.active.fx, this.active.fz + RACK.d / 2 + 0.6, this.activeAmt);
