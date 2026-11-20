@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Layout } from './layout';
 import type { SharedUniforms } from './racks';
+import { lightRows } from './atmosphere';
 
 export interface FloorUniforms {
   uRobot: { value: THREE.Vector2 };
@@ -8,6 +9,9 @@ export interface FloorUniforms {
   uPingAmt: { value: number };
   uCold: { value: THREE.Vector4[] };
   uHot: { value: THREE.Vector4 };
+  uLightZ: { value: THREE.Vector3 };
+  uLightX: { value: THREE.Vector2 }; // x0, demi-largeur
+  uActivePool: { value: THREE.Vector3 }; // x, z, intensité
 }
 
 /**
@@ -38,6 +42,9 @@ function floorMaterial(shared: SharedUniforms, fu: FloorUniforms): THREE.MeshSta
         uniform float uPingAmt;
         uniform vec4 uCold[2];
         uniform vec4 uHot;
+        uniform vec3 uLightZ;
+        uniform vec2 uLightX;
+        uniform vec3 uActivePool;
         float fh(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
         float inRect(vec2 p, vec4 r){ return step(r.x, p.x) * step(p.x, r.y) * step(r.z, p.y) * step(p.y, r.w); }`,
       )
@@ -49,7 +56,7 @@ function floorMaterial(shared: SharedUniforms, fu: FloorUniforms): THREE.MeshSta
         vec2 cell = floor(tile);
         vec2 g = abs(fract(tile) - 0.5);
         float seam = 1.0 - (1.0 - smoothstep(0.47, 0.5, g.x)) * (1.0 - smoothstep(0.47, 0.5, g.y));
-        float var = fh(cell) * 0.06 - 0.03;
+        float var = fh(cell) * 0.02 - 0.01;
         float cold = max(inRect(fp, uCold[0]), inRect(fp, uCold[1]));
         float hot = inRect(fp, uHot);
         // dalles perforées : deux rangées devant chaque façade (là où l'air froid est aspiré)
@@ -71,10 +78,22 @@ function floorMaterial(shared: SharedUniforms, fu: FloorUniforms): THREE.MeshSta
           totalEmissiveRadiance += vec3(0.004, 0.012, 0.018) * cold * power;
           // allée chaude : lueur orangée
           totalEmissiveRadiance += vec3(0.022, 0.006, 0.002) * hot * (1.0 - seam * 0.6) * power;
+          // flaques de lumière sous les néons (éclaire la couleur du sol, pas un simple glow)
+          float lx = (fract((fp.x - uLightX.x) / 2.6 + 0.5) - 0.5) * 2.6;
+          float inX = smoothstep(uLightX.y + 0.6, uLightX.y - 0.6, abs(fp.x));
+          float fx = exp(-lx * lx * 0.32);
+          float pA = fx * exp(-pow(fp.y - uLightZ.x, 2.0) * 0.42);
+          float pB = fx * exp(-pow(fp.y - uLightZ.y, 2.0) * 0.42);
+          float pH = fx * exp(-pow(fp.y - uLightZ.z, 2.0) * 0.42);
+          vec3 pool = vec3(0.75, 0.88, 1.0) * (pA + pB) + vec3(1.0, 0.62, 0.32) * pH;
+          totalEmissiveRadiance += (diffuseColor.rgb * 1.1 + 0.004) * pool * inX * power;
+          // baie active : flaque cyan devant la façade
+          float da = distance(fp, uActivePool.xy);
+          totalEmissiveRadiance += vec3(0.25, 0.75, 0.95) * exp(-da * da * 0.9) * uActivePool.z * 0.35;
           // halo du robot
           float dr = distance(fp, uRobot);
-          totalEmissiveRadiance += vec3(0.25, 0.75, 0.95) * exp(-dr * dr * 2.2) * 0.55;
-          totalEmissiveRadiance += vec3(0.25, 0.75, 0.95) * seam * exp(-dr * 1.1) * 0.6;
+          totalEmissiveRadiance += vec3(0.25, 0.75, 0.95) * exp(-dr * dr * 2.6) * 0.22;
+          totalEmissiveRadiance += vec3(0.25, 0.75, 0.95) * seam * exp(-dr * 1.3) * 0.35;
           // ping : anneau qui balaie la salle et révèle le quadrillage
           float dp = distance(fp, uPing.xy);
           float ring = exp(-pow((dp - uPing.z) * 3.0, 2.0)) * uPingAmt;
@@ -136,6 +155,9 @@ export class Room {
         ],
       },
       uHot: { value: new THREE.Vector4(-layout.rowHalf - 1, layout.rowHalf + 1, minZ + 0.3, -7.9) },
+      uLightZ: { value: new THREE.Vector3(...lightRows(layout).map((r) => r.z)) },
+      uLightX: { value: new THREE.Vector2(-layout.rowHalf + 1.1, layout.rowHalf - 0.4) },
+      uActivePool: { value: new THREE.Vector3(0, 0, 0) },
     };
 
     // dalle de faux-plancher : épaisse, on voit sa tranche au sud (effet maquette en coupe)
@@ -172,7 +194,7 @@ export class Room {
     // seuil d'entrée lumineux
     const threshold = new THREE.Mesh(
       new THREE.BoxGeometry(2.8, 0.02, 0.12),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color('#5ce1ff').multiplyScalar(2), toneMapped: false }),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color('#5ce1ff').multiplyScalar(1.1), toneMapped: false }),
     );
     threshold.position.set(0, 0.01, maxZ + 0.05);
     this.group.add(threshold);

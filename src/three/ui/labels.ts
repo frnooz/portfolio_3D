@@ -35,7 +35,7 @@ export class Labels {
       const near = Math.max(0, Math.min(1, 1.2 - d / 9));
       const op = behind || e.item.id === activeId ? 0 : (0.4 + near * 0.6) * power;
       e.el.style.opacity = op.toFixed(2);
-      e.el.classList.toggle('is-far', d > 5.5);
+      e.el.classList.toggle('is-far', d > 2.6);
       e.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -100%)`;
     }
   }

@@ -31,7 +31,7 @@ function patchTexture(): THREE.CanvasTexture {
 
 /** Fibre jaune dans les chemins de câbles, avec des impulsions de données. */
 function fiberMaterial(u: SharedUniforms): THREE.MeshStandardMaterial {
-  const m = new THREE.MeshStandardMaterial({ color: '#8a6d16', roughness: 0.6, metalness: 0.1 });
+  const m = new THREE.MeshStandardMaterial({ color: '#3d3110', roughness: 0.7, metalness: 0.1 });
   m.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, u);
     s.vertexShader = s.vertexShader
@@ -45,7 +45,7 @@ function fiberMaterial(u: SharedUniforms): THREE.MeshStandardMaterial {
         float pw = smoothstep(uPowerRadius, uPowerRadius - 3.0, distance(vFW.xz, uPowerOrigin));
         float lane = floor(vFW.z * 6.0);
         float pulse = smoothstep(0.9, 1.0, fract(vFW.x * 0.12 - uTime * (0.35 + fract(lane * 0.37) * 0.3) + lane * 0.29));
-        totalEmissiveRadiance += vec3(1.0, 0.72, 0.2) * pulse * 1.3 * pw;`,
+        totalEmissiveRadiance += vec3(1.0, 0.72, 0.2) * pulse * 0.9 * pw;`,
       );
   };
   m.customProgramCacheKey = () => 'fiber-v1';

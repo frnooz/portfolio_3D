@@ -4,7 +4,7 @@ import type { Physics } from '../systems/physics';
 
 export type Mood = 'idle' | 'happy' | 'scan' | 'bump' | 'love' | 'sleep';
 
-const SHELL = '#dfe4e8';
+const SHELL = '#d6d3cb';
 const DARK = '#171c21';
 const AMBER = '#ffb020';
 const EYE = '#5ce1ff';
@@ -174,6 +174,23 @@ export class Robot {
     this.antennaTip.position.set(0.17, 0.43, -0.08);
     this.head.add(this.antennaTip);
 
+    // sac à dos : batterie + aérations (on voit souvent le robot de dos)
+    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.26, 0.14), amber);
+    pack.position.set(0, 0.56, -0.33);
+    this.rig.add(pack);
+    const ventGeo = new THREE.BoxGeometry(0.24, 0.022, 0.02);
+    for (let i = 0; i < 4; i++) {
+      const v = new THREE.Mesh(ventGeo, dark);
+      v.position.set(0, 0.49 + i * 0.045, -0.405);
+      this.rig.add(v);
+    }
+    const backLed = new THREE.Mesh(
+      new THREE.BoxGeometry(0.2, 0.025, 0.02),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color('#39e58c').multiplyScalar(2.5), toneMapped: false }),
+    );
+    backLed.position.set(0, 0.665, -0.405);
+    this.rig.add(backLed);
+
     // bras-sonde (se déploie vers les baies)
     this.arm.position.set(0.33, 0.55, 0.05);
     const upper = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.3), dark);
@@ -190,16 +207,15 @@ export class Robot {
 
     this.group.add(this.rig);
 
-    // silhouette « rayons X » : visible seulement quand une baie cache le robot
+    // silhouette « rayons X » : visible seulement quand le décor cache le robot.
+    // Dessinée AVANT le robot (renderOrder) en additif : elle ne compare sa profondeur
+    // qu'au décor, donc le robot ne se « cache » jamais lui-même.
+    this.rig.traverse((o) => (o.renderOrder = 20));
     const xray = new THREE.MeshBasicMaterial({
-      color: EYE,
-      transparent: true,
-      opacity: 0.32,
+      color: new THREE.Color(EYE).multiplyScalar(0.28),
+      blending: THREE.AdditiveBlending,
       depthFunc: THREE.GreaterDepth,
       depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: -2,
-      polygonOffsetUnits: -2,
     });
     for (const src of [body, skirt, neck]) {
       const ghost = new THREE.Mesh(src.geometry, xray);
@@ -226,11 +242,12 @@ export class Robot {
     this.group.add(this.shadow);
 
     // lampe frontale : éclaire les baies au passage
-    this.light = new THREE.PointLight(EYE, 4, 5.5, 1.6);
+    this.light = new THREE.PointLight(EYE, 1.4, 4, 1.6);
     this.light.position.set(0, 1.1, 0.6);
     this.group.add(this.light);
 
     this.group.rotation.y = this.heading;
+    this.rig.scale.setScalar(1.15);
     this.drawFace();
   }
 

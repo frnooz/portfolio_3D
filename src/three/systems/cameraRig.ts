@@ -71,8 +71,8 @@ export class CameraRig {
     // panneau en bas (mobile) : on remonte le sujet dans le haut de l'écran
     const look = this.look.copy(this.target);
     if (compact) {
-      look.z += this.sideShift * 1.6;
-      cam.position.z += this.sideShift * 1.6;
+      look.z += this.sideShift * 2.8;
+      cam.position.z += this.sideShift * 2.8;
     } else {
       look.x += this.sideShift * 2.1;
       cam.position.x += this.sideShift * 2.1;

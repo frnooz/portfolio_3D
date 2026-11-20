@@ -697,6 +697,9 @@ kbd {
   .kbd-hint {
     display: none;
   }
+  .panel-open .hud-touch {
+    opacity: 0;
+  }
 }
 
 /* ── toast ─────────────────────────────────────────────── */

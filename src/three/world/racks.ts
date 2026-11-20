@@ -155,9 +155,9 @@ function sledMaterial(u: SharedUniforms): THREE.MeshStandardMaterial {
               leds += vec3(0.22, 0.9, 0.55) * dotLed(p, vec2(W - 0.06, H * 0.5), 0.014);
             }
             // baie active : liseré lumineux
-            leds += vec3(0.36, 0.88, 1.0) * clamp(rim, 0.0, 1.0) * act * 0.35;
+            leds += vec3(0.36, 0.88, 1.0) * clamp(rim, 0.0, 1.0) * act * 0.12;
           }
-          totalEmissiveRadiance += leds * (3.2 + act * 2.0) * power;
+          totalEmissiveRadiance += leds * (5.5 + act * 1.5) * power;
         }`,
       );
   };
@@ -216,7 +216,7 @@ function bodyMaterial(u: SharedUniforms): THREE.MeshStandardMaterial {
           float strip = isFront * step(RH - 0.115, vObj.y) * step(vObj.y, RH - 0.075) * step(abs(vObj.x), RW * 0.5 - 0.1);
           float pulse = mix(1.0, 0.35 + 0.65 * (0.5 + 0.5 * sin(uTime * 2.4)), vPulse);
           vec3 sc = mix(vStatus, vec3(0.36, 0.88, 1.0), act);
-          totalEmissiveRadiance += sc * strip * pulse * (2.6 + act * 3.0) * power;
+          totalEmissiveRadiance += sc * strip * pulse * (2.6 + act * 1.6) * power;
           // rails de montage (visibles porte ouverte)
           float rail = isFront * step(RW * 0.5 - 0.13, abs(vObj.x)) * step(abs(vObj.x), RW * 0.5 - 0.07);
           float holes = rail * step(0.5, fract(vObj.y / 0.023)) * step(0.5, fract((abs(vObj.x) - 0.08) / 0.03));
@@ -224,6 +224,13 @@ function bodyMaterial(u: SharedUniforms): THREE.MeshStandardMaterial {
           diffuseColor.rgb *= 1.0 - holes * 0.6;
           // fond de baie vide légèrement éclairé à l'ouverture
           totalEmissiveRadiance += vStatus * isFront * (1.0 - strip) * act * 0.05;
+          // toit : tôle plus claire, grille d'aération, et barre de statut visible du dessus
+          float isTop = step(0.5, vObjN.y) * step(RH + 0.01, vObj.y);
+          float vents = isTop * step(abs(vObj.x), RW * 0.32) * step(abs(vObj.z), RD * 0.28) * step(0.55, fract(vObj.z / 0.045));
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.16, 0.18, 0.2), isTop * 0.85);
+          diffuseColor.rgb *= 1.0 - vents * 0.55;
+          float topStrip = isTop * step(RD * 0.5 - 0.075, vObj.z) * step(abs(vObj.x), RW * 0.5 - 0.06);
+          totalEmissiveRadiance += sc * topStrip * pulse * (1.6 + act * 1.6) * power;
           // panneaux latéraux : rainures verticales
           float side = step(0.5, abs(vObjN.x));
           float groove = side * step(0.94, fract(vObj.z / 0.2));

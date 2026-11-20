@@ -7,6 +7,11 @@ import { Room } from './world/room';
 import { Decor } from './world/decor';
 import { Noc } from './world/noc';
 import { Legacy } from './world/legacy';
+import { Atmosphere } from './world/atmosphere';
+import { Cables } from './world/cables';
+import { Post, type QualityLevel } from './systems/post';
+import { Sound } from './systems/audio';
+import { isCoarsePointer, store } from '../shared/env';
 import { CameraRig } from './systems/cameraRig';
 import { Input } from './systems/input';
 import { NavGrid } from './systems/nav';
@@ -37,6 +42,12 @@ export class Experience {
   readonly labels: Labels;
   readonly map: RoomMap;
   readonly toast = new Toast();
+  readonly sound = new Sound();
+  readonly post: Post;
+  readonly atmosphere: Atmosphere;
+  readonly cables: Cables;
+  private pingT = -10;
+  private readonly pingOrigin = new THREE.Vector2();
   private readonly canvas: HTMLCanvasElement;
   private readonly items: Item[];
   private active: Item | null = null;
@@ -67,9 +78,8 @@ export class Experience {
   constructor() {
     this.canvas = document.getElementById('scene') as HTMLCanvasElement;
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMappingExposure = 1.1;
 
     this.scene.background = new THREE.Color('#030405');
     this.scene.fog = new THREE.FogExp2('#030405', 0.028);
@@ -86,14 +96,23 @@ export class Experience {
     this.room = new Room(this.layout, this.uniforms);
     this.racks = new Racks(this.layout.racks, this.uniforms);
     const decor = new Decor(this.layout, this.uniforms, this.physics);
-    this.scene.add(this.room.group, this.racks.group, decor.group, this.noc.group, this.legacy.group, this.robot.group);
+    this.atmosphere = new Atmosphere(this.layout, this.uniforms);
+    this.cables = new Cables(this.layout, this.uniforms, this.room.floorUniforms);
+    this.scene.add(
+      this.room.group, this.cables.mesh, this.racks.group, decor.group, this.noc.group,
+      this.legacy.group, this.robot.group, this.atmosphere.group,
+    );
     this.nav = new NavGrid(this.physics, this.robot.radius);
 
-    // lumière d'ambiance : froide, basse — la salle est éclairée par ses LEDs
-    this.scene.add(new THREE.HemisphereLight('#3d5a75', '#07090b', 1.1));
-    const key = new THREE.DirectionalLight('#a9c8ff', 1.1);
-    key.position.set(-6, 12, 9);
+    // éclairage : une clé froide venant de l'entrée, un contre-jour chaud depuis l'allée chaude.
+    // Le reste vient des LEDs, des néons et du bloom.
+    this.scene.add(new THREE.HemisphereLight('#8ea6bd', '#07090b', 0.55));
+    const key = new THREE.DirectionalLight('#e3edff', 1.25);
+    key.position.set(-4, 14, 10);
     this.scene.add(key);
+    const rim = new THREE.DirectionalLight('#ff9d55', 0.5);
+    rim.position.set(8, 6, -14);
+    this.scene.add(rim);
 
     // pastilles du trajet en pilote automatique
     this.dots = new THREE.InstancedMesh(
@@ -107,6 +126,17 @@ export class Experience {
 
     this.robot.position.set(SPAWN.x, 0, SPAWN.z);
     this.rig = new CameraRig(window.innerWidth / window.innerHeight);
+
+    this.post = new Post(this.renderer, this.scene, this.rig.camera, isCoarsePointer() ? 1 : 2);
+    this.post.onChange = (level: QualityLevel, dpr: number) => this.atmosphere.setQuality(level, dpr);
+    this.post.onStruggle = () =>
+      this.toast.show('Ton appareil a du mal avec la 3D — la version classique est dispo en haut à droite.', 'warn', 7000);
+    this.atmosphere.setQuality(this.post.level, this.post.dpr);
+
+    // son : coupé par défaut, choix mémorisé (mais jamais relancé sans geste de l'utilisateur)
+    const soundBtn = document.getElementById('btn-sound')!;
+    soundBtn.addEventListener('click', () => this.toggleSound());
+    if (store.get('dc01-sound') === 'on') soundBtn.dataset.wanted = 'on';
 
     this.labels = new Labels(this.items, document.getElementById('labels')!);
     this.map = new RoomMap(this.layout, this.items);
@@ -129,7 +159,10 @@ export class Experience {
         if (this.panel.isOpen) this.panel.close(true);
         else if (this.path) this.stopAutopilot();
       } else if (a === 'map') this.map.toggle();
+      else if (a === 'ping') this.ping();
+      else if (a === 'sound') this.toggleSound();
     });
+    this.panel.onClose = () => this.sound.close();
 
     this.resize();
     this.rig.snap(this.robot.position);
@@ -138,6 +171,40 @@ export class Experience {
     const initialHash = window.location.hash;
     this.renderer.setAnimationLoop(this.tick);
     if (initialHash) window.setTimeout(() => this.followHash(initialHash), 600);
+  }
+
+  // ── son & ping ─────────────────────────────────────────
+
+  toggleSound() {
+    const on = !this.sound.enabled;
+    this.sound.setEnabled(on);
+    store.set('dc01-sound', on ? 'on' : 'off');
+    const btn = document.getElementById('btn-sound')!;
+    btn.setAttribute('aria-pressed', String(on));
+    btn.querySelector('.lbl')!.textContent = on ? 'Son activé' : 'Son coupé';
+  }
+
+  ping() {
+    const p = this.robot.position;
+    this.pingT = this.time;
+    this.pingOrigin.set(p.x, p.z);
+    this.sound.ping();
+    this.robot.setMood('scan', 1.2);
+    // l'hôte le plus proche répond
+    let best: Item | null = null;
+    let bd = Infinity;
+    for (const it of this.items) {
+      const d = Math.hypot(it.fx - p.x, it.fz - p.z);
+      if (d < bd) {
+        bd = d;
+        best = it;
+      }
+    }
+    if (best) {
+      const host = best.project?.hostname ?? best.domain?.hostname ?? (best.kind === 'cv' ? 'legacy-srv-1998' : 'supervision-01');
+      const ms = (bd * 0.11 + 0.08).toFixed(2).replace('.', ',');
+      window.setTimeout(() => this.toast.show(`64 octets de ${host} : icmp_seq=1 ttl=64 temps=${ms} ms`, 'ok'), 450);
+    }
   }
 
   // ── navigation ─────────────────────────────────────────
@@ -325,6 +392,7 @@ export class Experience {
 
   private activate(item: Item) {
     this.panel.show(item);
+    this.sound.open();
     if (item.rackIndex !== undefined) {
       this.racks.setOpen(item.rackIndex, true);
       this.uniforms.uActive.value = item.rackIndex;
@@ -358,7 +426,7 @@ export class Experience {
     this.w = window.innerWidth;
     this.h = window.innerHeight;
     this.compact = this.w <= 760;
-    this.renderer.setSize(this.w, this.h, false);
+    this.post.setSize(this.w, this.h);
     this.rig.resize(this.w, this.h);
   };
 
@@ -371,8 +439,25 @@ export class Experience {
     this.input.vector(this.move);
     this.autopilot(this.move);
     const impact = this.robot.step(dt, this.move, this.input.boost, this.physics);
-    if (impact > 2.5) this.rig.shake(impact * 0.025);
-    this.room.setRobot(this.robot.position.x, this.robot.position.z);
+    if (impact > 2.5) {
+      this.rig.shake(impact * 0.025);
+      this.sound.bump(impact);
+    }
+    const rp = this.robot.position;
+    this.room.setRobot(rp.x, rp.z);
+    this.cables.update(dt, t, rp.x, rp.z, this.robot.speed);
+    this.sound.update(this.robot.speed, this.input.boost);
+
+    // onde de ping : 1,6 s pour traverser la salle
+    const pa = t - this.pingT;
+    const fu = this.room.floorUniforms;
+    fu.uPing.value.set(this.pingOrigin.x, this.pingOrigin.y, pa * 16);
+    fu.uPingAmt.value = pa < 1.8 ? Math.max(0, 1 - pa / 1.8) : 0;
+    this.post.bloomBoost = fu.uPingAmt.value * 0.6;
+
+    const pool = fu.uActivePool.value;
+    if (this.active) pool.set(this.active.fx, this.active.fz + RACK.d / 2 + 0.6, this.activeAmt);
+    else pool.z = this.activeAmt;
     this.map.setRobot(this.robot.position.x, this.robot.position.z);
 
     this.updateInteraction(dt);
@@ -383,6 +468,6 @@ export class Experience {
 
     this.rig.update(dt, this.robot.position, this.robot.velocity, this.active ? this.focus : null, this.panel.isOpen, this.compact);
     this.labels.update(this.rig.camera, this.robot.position, this.active?.id ?? null, this.w, this.h, 1);
-    this.renderer.render(this.scene, this.rig.camera);
+    this.post.render(dt, t);
   };
 }

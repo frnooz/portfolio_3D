@@ -202,6 +202,7 @@ export class Panel {
     // force reflow pour relancer la transition d'entrée
     void this.root.offsetWidth;
     this.root.classList.add('is-open');
+    document.body.classList.add('panel-open');
     this.announcer.textContent = `${r.code} : ${r.title}. Appuie sur Entrée pour lire le détail.`;
   }
 
@@ -210,6 +211,7 @@ export class Panel {
     const hadFocus = this.root.contains(document.activeElement);
     this.current = null;
     this.root.classList.remove('is-open');
+    document.body.classList.remove('panel-open');
     window.setTimeout(() => {
       if (!this.current) this.root.hidden = true;
     }, 260);
