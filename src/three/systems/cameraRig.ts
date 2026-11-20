@@ -52,6 +52,8 @@ export class CameraRig {
     this.t += dt;
     this.desired.copy(robot).addScaledVector(vel, 0.28);
     this.desired.y = 0.6;
+    // portrait : on cadre plus loin vers le fond de la salle (sinon la moitié basse est vide)
+    if (this.camera.aspect < 0.85) this.desired.z -= (0.85 - this.camera.aspect) * 9;
     if (focus) {
       this.desired.lerp(focus, 0.35);
       this.desired.y = 0.9;
