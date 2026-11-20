@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Salle serveur — Noah Guglielmino</title>
+    <meta name="description" content="Explore le portfolio de Noah Guglielmino, étudiant BUT R&amp;T DevCloud, sous la forme d'une salle serveur en 3D pilotée par un petit robot de maintenance.">
+    <meta name="theme-color" content="#06080a">
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <noscript>
+      <style>
+        .boot { display: none; }
+        .noscript { position: fixed; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; background: #06080a; color: #e8edf1; font: 16px/1.6 monospace; text-align: center; }
+        .noscript a { color: #5ce1ff; }
+      </style>
+    </noscript>
+  </head>
+  <body class="is-booting">
+    <nav aria-label="Accès rapide"><a class="skip-link" href="../classique/">Passer à la version classique (sans 3D)</a></nav>
+
+    <header class="hud-top">
+      <a class="hud-brand" href="../">
+        <strong>Noah Guglielmino</strong>
+        <span>DC-01 · salle serveur</span>
+      </a>
+      <nav class="hud-actions" aria-label="Commandes de la salle">
+        <button id="btn-map" class="hud-btn" type="button" aria-haspopup="dialog" aria-controls="map"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M1.5 3.5 5.5 2l5 1.5 4-1.5v10.5l-4 1.5-5-1.5-4 1.5zM5.5 2v10.5M10.5 3.5V14"/></svg><span class="lbl">Plan</span><kbd class="kbd-hint">M</kbd></button>
+        <button id="btn-sound" class="hud-btn" type="button" aria-pressed="false"><span class="led" aria-hidden="true"></span><span class="lbl">Son coupé</span></button>
+        <a class="hud-btn" href="../classique/"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 3h12M2 8h12M2 13h8"/></svg><span class="lbl">Version classique</span></a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <h1 id="scene-title" class="sr-only" tabindex="-1">Salle serveur — portfolio 3D de Noah Guglielmino</h1>
+      <p id="scene-desc" class="sr-only">
+        Une salle serveur en 3D que tu explores avec un robot de maintenance. Déplace-le avec les flèches,
+        ZQSD ou WASD. Chaque baie est un projet ou une compétence : en t'approchant, un panneau s'ouvre.
+        Le bouton « Plan » liste toutes les baies et y envoie le robot automatiquement.
+      </p>
+
+      <div id="boot" class="boot">
+        <div class="boot-inner">
+          <div class="boot-head"><strong>DC-01</strong><span>noah guglielmino · salle serveur</span></div>
+          <div class="boot-log" aria-hidden="true"></div>
+          <div class="boot-foot">
+            <progress class="boot-bar" max="100" value="0" aria-label="Chargement de la salle serveur">0 %</progress>
+            <span class="boot-pct" aria-hidden="true">0 %</span>
+            <button type="button" class="boot-skip">Passer <kbd>Entrée</kbd></button>
+          </div>
+        </div>
+        <div id="motion-gate" class="motion-gate" hidden>
+          <div class="mg-card" role="dialog" aria-modal="true" aria-labelledby="mg-title">
+            <h2 id="mg-title">Animations réduites détectées</h2>
+            <p>Ton système demande de limiter les animations. La salle 3D bouge beaucoup : la version classique contient exactement le même contenu, sans mouvement.</p>
+            <div class="mg-actions">
+              <a class="primary" href="../classique/">Version classique (recommandé)</a>
+              <button type="button" data-enter>Entrer quand même dans la salle</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage" aria-hidden="true">
+        <canvas id="scene"></canvas>
+      </div>
+
+      <div class="hud-inv" id="inventory">
+        <span class="inv-lbl">Inventaire</span>
+        <span class="inv-count"><b id="inv-done">0</b>/<span id="inv-total">0</span></span>
+        <span class="inv-bar" aria-hidden="true"><i id="inv-fill"></i></span>
+      </div>
+
+      <ul class="hud-help" aria-label="Commandes clavier">
+        <li><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> se déplacer</li>
+        <li><kbd>Maj</kbd> turbo</li>
+        <li><kbd>Entrée</kbd> lire le panneau</li>
+        <li><kbd>Espace</kbd> ping</li>
+        <li><kbd>M</kbd> plan</li>
+        <li>clic : y aller</li>
+      </ul>
+      <p class="hud-touch" aria-hidden="true">Glisse pour piloter · touche une baie pour y aller</p>
+
+      <div id="labels" class="labels" aria-hidden="true"></div>
+      <div id="joystick" class="joystick" aria-hidden="true"><div class="joy-knob"></div></div>
+      <div id="toast" class="toast" aria-hidden="true"></div>
+
+      <dialog id="map" class="map" aria-labelledby="map-title">
+        <div class="map-inner">
+          <div class="map-head">
+            <h2 id="map-title">Plan de salle</h2>
+            <button type="button" class="pl-close" data-close-map aria-label="Fermer le plan">
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="1.6"/></svg>
+            </button>
+          </div>
+          <p class="map-hint">Choisis une destination : le robot y va tout seul.</p>
+          <div class="map-grid" data-capture-keys></div>
+        </div>
+      </dialog>
+
+      <section id="panel" class="panel" aria-label="Détail de la baie" hidden></section>
+      <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+      <noscript>
+        <p class="noscript">La salle 3D a besoin de JavaScript. <a href="../classique/">Ouvrir la version classique</a>.</p>
+      </noscript>
+
+    </main>
+
+    <script type="module" src="../src/three/main.ts"></script>
+  </body>
+</html>

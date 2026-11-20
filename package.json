@@ -1,0 +1,28 @@
+{
+  "name": "portfolio-datacenter",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Portfolio 3D interactif de Noah Guglielmino — une salle serveur explorable.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "validate": "html-validate \"dist/**/*.html\" && java -jar node_modules/vnu-jar/build/dist/vnu.jar --skip-non-html --errors-only dist"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/three": "^0.187.0",
+    "axe-core": "^4.14.1",
+    "html-validate": "^11.21.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8",
+    "vnu-jar": "^26.11.20"
+  }
+}

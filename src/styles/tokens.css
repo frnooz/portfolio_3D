@@ -1,0 +1,107 @@
+/* ──────────────────────────────────────────────────────────
+   DC-01 · design tokens
+   Salle serveur : ardoise, béton, LEDs. Zéro violet.
+   ────────────────────────────────────────────────────────── */
+@import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+@import '@fontsource/ibm-plex-mono/latin-600.css';
+
+:root {
+  color-scheme: dark;
+
+  /* surfaces */
+  --bg: #06080a;
+  --bg-1: #0b0f12;
+  --bg-2: #11161b;
+  --line: #1e262e;
+  --line-strong: #2c3742;
+
+  /* texte — contrastes WCAG mesurés sur --bg (AA = 4.5:1 minimum) */
+  --text: #e8edf1;      /* 17.0:1 */
+  --text-2: #a9b5c0;    /* 9.6:1  */
+  --text-3: #7d8a96;    /* 5.7:1  */
+
+  /* LEDs */
+  --ok: #39e58c;
+  --info: #5ce1ff;
+  --warn: #ffb020;
+  --crit: #ff5a4e;
+  --legacy: #d8c8a0;
+
+  /* typographie */
+  --font-display: 'Archivo Variable', 'Archivo', 'Arial Narrow', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --radius: 2px;
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--info);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 3px;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -100px;
+  z-index: 1000;
+  padding: 10px 14px;
+  background: var(--info);
+  color: #001218;
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
