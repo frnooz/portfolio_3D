@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { clamp, damp, dampAngle } from '../core/math';
 import type { Physics } from '../systems/physics';
+import { bakeMerge } from '../core/geometry';
 
 export type Mood = 'idle' | 'happy' | 'scan' | 'bump' | 'love' | 'sleep';
 
@@ -226,6 +227,14 @@ export class Robot {
     const ghostHead = new THREE.Mesh(skull.geometry, xray);
     ghostHead.renderOrder = 10;
     this.head.add(ghostHead);
+
+    // fusion des pièces statiques par matériau : ~10 draw calls de moins
+    const byMat = (parent: THREE.Object3D, mat: THREE.Material) =>
+      parent.children.filter((c): c is THREE.Mesh => c instanceof THREE.Mesh && c.material === mat);
+    for (const [parent, mat] of [[this.rig, dark], [this.head, dark], [this.head, amber]] as const) {
+      const parts = byMat(parent, mat);
+      if (parts.length > 1) bakeMerge(parts, parent, mat).renderOrder = 20;
+    }
 
     // ombre portée douce (pas de shadow map : gratuit)
     this.shadow = new THREE.Mesh(

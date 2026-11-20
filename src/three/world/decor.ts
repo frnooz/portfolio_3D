@@ -60,26 +60,27 @@ export class Decor {
 
     // ── peignes de brassage entre les baies projet ──
     if (layout.managers.length) {
-      const geo = new THREE.BoxGeometry(0.36, RACK.h - 0.05, RACK.d - 0.2);
-      geo.translate(0, (RACK.h - 0.05) / 2, 0);
-      const mesh = new THREE.InstancedMesh(
+      const H = RACK.h - 0.05;
+      const D = RACK.d - 0.2;
+      const geo = new THREE.BoxGeometry(0.36, H, D).translate(0, H / 2, 0);
+      const front = new THREE.PlaneGeometry(0.34, H - 0.04).translate(0, H / 2, D / 2 + 0.002);
+      const body = new THREE.InstancedMesh(
         geo,
-        [
-          new THREE.MeshStandardMaterial({ color: '#111519', roughness: 0.6, metalness: 0.4 }),
-          new THREE.MeshStandardMaterial({ color: '#111519', roughness: 0.6, metalness: 0.4 }),
-          new THREE.MeshStandardMaterial({ color: '#111519', roughness: 0.6, metalness: 0.4 }),
-          new THREE.MeshStandardMaterial({ color: '#111519', roughness: 0.6, metalness: 0.4 }),
-          new THREE.MeshStandardMaterial({ map: patchTexture(), roughness: 0.7 }),
-          new THREE.MeshStandardMaterial({ color: '#111519', roughness: 0.6, metalness: 0.4 }),
-        ],
+        new THREE.MeshStandardMaterial({ color: '#111519', roughness: 0.6, metalness: 0.4 }),
+        layout.managers.length,
+      );
+      const face = new THREE.InstancedMesh(
+        front,
+        new THREE.MeshStandardMaterial({ map: patchTexture(), roughness: 0.7 }),
         layout.managers.length,
       );
       const m = new THREE.Matrix4();
       layout.managers.forEach((p, i) => {
         m.makeTranslation(p.x, 0, p.z);
-        mesh.setMatrixAt(i, m);
+        body.setMatrixAt(i, m);
+        face.setMatrixAt(i, m);
       });
-      this.group.add(mesh);
+      this.group.add(body, face);
     }
 
     // ── chemins de câbles au plafond + fibre jaune ──
@@ -123,8 +124,8 @@ export class Decor {
     this.group.add(new THREE.Mesh(mergeGeometries(fiberParts)!, fiberMaterial(uniforms)));
 
     // ── climatiseurs de précision (CRAC) le long des murs ──
-    const cracGeo = new THREE.BoxGeometry(0.9, 2.1, 2.0);
-    cracGeo.translate(0, 1.05, 0);
+    const cracBodies: THREE.BufferGeometry[] = [];
+    const cracFronts: THREE.BufferGeometry[] = [];
     const grille = document.createElement('canvas');
     grille.width = 128;
     grille.height = 256;
@@ -150,16 +151,21 @@ export class Decor {
     for (const side of [-1, 1]) {
       for (const z of cracZs) {
         const x = side < 0 ? room.minX + 0.5 : room.maxX - 0.5;
-        // la face « avant » (+x local) regarde l'intérieur de la salle
-        const mats = side < 0
-          ? [cracFront, cracSide, cracSide, cracSide, cracSide, cracSide]
-          : [cracSide, cracFront, cracSide, cracSide, cracSide, cracSide];
-        const crac = new THREE.Mesh(cracGeo, mats);
-        crac.position.set(x, 0, z);
-        this.group.add(crac);
+        cracBodies.push(new THREE.BoxGeometry(0.9, 2.1, 2.0).translate(x, 1.05, z));
+        // la façade (grille + écran) regarde l'intérieur de la salle
+        cracFronts.push(
+          new THREE.PlaneGeometry(1.9, 2.0)
+            .rotateY(side < 0 ? Math.PI / 2 : -Math.PI / 2)
+            .translate(x - side * 0.452, 1.05, z),
+        );
         physics.add(boxFromCenter(x, z, 0.95, 2.05));
       }
     }
+
+    this.group.add(
+      new THREE.Mesh(mergeGeometries(cracBodies)!, cracSide),
+      new THREE.Mesh(mergeGeometries(cracFronts)!, cracFront),
+    );
 
     // ── marquages au sol (peinture jaune usée) ──
     const paint = (text: string, sub: string, x: number, z: number, w: number) => {
@@ -194,11 +200,15 @@ export class Decor {
 
     // bandes de délimitation des allées
     const stripeMat = new THREE.MeshBasicMaterial({ color: '#e9d48a', transparent: true, opacity: 0.22, depthWrite: false });
-    for (const z of [PROJECT_ROW_Z + RACK.d / 2 + 0.25, SKILL_ROW_Z + RACK.d / 2 + 0.25]) {
-      const s = new THREE.Mesh(new THREE.PlaneGeometry(rowHalf * 2 + 0.6, 0.05), stripeMat);
-      s.rotation.x = -Math.PI / 2;
-      s.position.set(0, 0.005, z);
-      this.group.add(s);
-    }
+    this.group.add(
+      new THREE.Mesh(
+        mergeGeometries(
+          [PROJECT_ROW_Z + RACK.d / 2 + 0.25, SKILL_ROW_Z + RACK.d / 2 + 0.25].map((z) =>
+            new THREE.PlaneGeometry(rowHalf * 2 + 0.6, 0.05).rotateX(-Math.PI / 2).translate(0, 0.005, z),
+          ),
+        )!,
+        stripeMat,
+      ),
+    );
   }
 }

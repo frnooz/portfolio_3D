@@ -3,6 +3,7 @@ import { profile } from '../../data/profile';
 import { damp } from '../core/math';
 import { FONT_MONO, ScreenTexture, textTexture } from '../core/screen';
 import { LEGACY } from './layout';
+import { bakeMerge } from '../core/geometry';
 
 const BEIGE = '#cbbf9f';
 const PHOSPHOR = '#ffb43a';
@@ -181,6 +182,14 @@ export class Legacy {
     this.paper.rotation.set(-0.35, -0.2, 0);
     this.paper.scale.y = 0.05;
     this.group.add(this.paper);
+
+    // pièces statiques fusionnées par matériau
+    this.pickables.length = 0;
+    for (const mat of [beige, beigeDark, black]) {
+      const parts = this.group.children.filter((c): c is THREE.Mesh => c instanceof THREE.Mesh && c.material === mat);
+      const merged = bakeMerge(parts, this.group, mat);
+      if (mat === beige) this.pickables.push(merged);
+    }
   }
 
   private paperTexture(): THREE.CanvasTexture {

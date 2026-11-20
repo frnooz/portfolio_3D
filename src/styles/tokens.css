@@ -17,10 +17,10 @@
   --line: #1e262e;
   --line-strong: #2c3742;
 
-  /* texte — contrastes vérifiés sur --bg (AA min.) */
-  --text: #e8edf1;      /* 17.1:1 */
-  --text-2: #a9b5c0;    /* 9.4:1  */
-  --text-3: #7d8a96;    /* 5.6:1  */
+  /* texte — contrastes WCAG mesurés sur --bg (AA = 4.5:1 minimum) */
+  --text: #e8edf1;      /* 17.0:1 */
+  --text-2: #a9b5c0;    /* 9.6:1  */
+  --text-3: #7d8a96;    /* 5.7:1  */
 
   /* LEDs */
   --ok: #39e58c;

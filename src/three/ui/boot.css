@@ -233,7 +233,16 @@
   color: #00151c;
 }
 
-/* pendant le boot et l'intro, l'interface reste cachée */
+/* pendant l'intro : fondu, mais toujours focusable (et visible dès qu'elle a le focus) */
+.is-intro .hud-top:not(:focus-within),
+.is-intro .hud-help,
+.is-intro .hud-touch,
+.is-intro .hud-inv,
+.is-intro .labels {
+  opacity: 0;
+}
+
+/* pendant le boot, l'interface reste cachée */
 .is-booting .hud-top,
 .is-booting .hud-help,
 .is-booting .hud-touch,

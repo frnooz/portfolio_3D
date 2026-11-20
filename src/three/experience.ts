@@ -57,7 +57,7 @@ export class Experience {
   private readonly items: Item[];
   private active: Item | null = null;
   private activeAmt = 0;
-  private readonly clock = new THREE.Clock();
+  private readonly timer = new THREE.Timer();
   private time = 0;
   private readonly move = { x: 0, z: 0 };
   private readonly focus = new THREE.Vector3();
@@ -170,6 +170,14 @@ export class Experience {
     });
     this.panel.onClose = () => this.sound.close();
 
+    // easter egg : taper « sudo » dans la salle
+    let typed = '';
+    window.addEventListener('keydown', (e) => {
+      if (e.key.length !== 1) return;
+      typed = (typed + e.key.toLowerCase()).slice(-4);
+      if (typed === 'sudo') this.sudo();
+    });
+
     this.resize();
     this.rig.snap(this.robot.position);
     window.addEventListener('resize', this.resize);
@@ -196,10 +204,18 @@ export class Experience {
       this.robot.setMood('sleep', 99);
       this.keyLight.intensity = 0.1;
       this.input.enabled = false;
+      // l'interface reste atteignable au clavier pendant l'intro (fondu seulement)
+      document.body.classList.replace('is-booting', 'is-intro');
+      const skip = () => {
+        if (this.introOn && this.introT > 0.8) this.introT = 99;
+      };
+      window.addEventListener('keydown', skip);
+      window.addEventListener('pointerdown', skip);
     } else {
       this.finishIntro();
     }
-    this.clock.getDelta();
+    this.timer.connect(document);
+    this.timer.reset();
     this.renderer.setAnimationLoop(this.tick);
   }
 
@@ -232,7 +248,7 @@ export class Experience {
       this.woke = true;
       this.robot.setMood('happy', 1.2);
     }
-    document.body.classList.remove('is-booting');
+    document.body.classList.remove('is-booting', 'is-intro');
     if (this.initialHash) window.setTimeout(() => this.followHash(this.initialHash), 300);
     else
       window.setTimeout(
@@ -284,6 +300,16 @@ export class Experience {
       const ms = (bd * 0.11 + 0.08).toFixed(2).replace('.', ',');
       window.setTimeout(() => this.toast.show(`64 octets de ${host} : icmp_seq=1 ttl=64 temps=${ms} ms`, 'ok'), 450);
     }
+  }
+
+  private sudoT = -10;
+
+  private sudo() {
+    this.sudoT = this.time;
+    this.robot.setMood('bump', 1.6);
+    this.rig.shake(0.25);
+    this.sound.bump(4);
+    this.toast.show("visiteur n'est pas dans le fichier sudoers. Cet incident sera signalé.", 'warn', 4200);
   }
 
   // ── navigation ─────────────────────────────────────────
@@ -509,8 +535,9 @@ export class Experience {
     this.rig.resize(this.w, this.h);
   };
 
-  private tick = () => {
-    const dt = Math.min(this.clock.getDelta(), 1 / 20);
+  private tick = (now: number) => {
+    this.timer.update(now);
+    const dt = Math.min(this.timer.getDelta(), 1 / 20);
     this.time += dt;
     const t = this.time;
     this.uniforms.uTime.value = t;
@@ -532,6 +559,13 @@ export class Experience {
     const fu = this.room.floorUniforms;
     fu.uPing.value.set(this.pingOrigin.x, this.pingOrigin.y, pa * 16);
     fu.uPingAmt.value = pa < 1.8 ? Math.max(0, 1 - pa / 1.8) : 0;
+    // sudo : coupure de courant d'une demi-seconde, puis tout se rallume en vague
+    const sa = t - this.sudoT;
+    if (!this.introOn && sa < 2.2) {
+      this.uniforms.uPowerOrigin.value.set(rp.x, rp.z);
+      this.uniforms.uPowerRadius.value = sa < 0.45 ? 0 : (sa - 0.45) * 22;
+    } else if (!this.introOn && sa < 2.4) this.uniforms.uPowerRadius.value = 999;
+
     if (this.introOn) this.updateIntro(dt);
     else this.post.bloomBoost = fu.uPingAmt.value * 0.6;
 

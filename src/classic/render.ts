@@ -165,8 +165,8 @@ function renderHomeIndexRaw(): string {
         <span class="port-label">${r.label}</span>
         <span class="port-meta">${esc(r.meta)}</span>
         <span class="port-links">
-          <a href="./3d/?choix=3d#${r.id}" class="needs-webgl" aria-label="${r.label} — dans la salle 3D">3D</a>
-          <a href="./classique/#${r.id}" aria-label="${r.label} — version classique">2D</a>
+          <a href="./3d/?choix=3d#${r.id}" class="needs-webgl">3D<span class="sr-only"> : ${r.label} dans la salle serveur</span></a>
+          <a href="./classique/#${r.id}">2D<span class="sr-only"> : ${r.label} en version classique</span></a>
         </span>
       </li>`,
     )

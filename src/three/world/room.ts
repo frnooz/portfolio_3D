@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Layout } from './layout';
 import type { SharedUniforms } from './racks';
 import { lightRows } from './atmosphere';
@@ -185,11 +186,12 @@ export class Room {
       [(minX - T - 1.4) / 2, maxZ + T / 2, -1.4 - (minX - T), T, 0.42],
       [(maxX + T + 1.4) / 2, maxZ + T / 2, maxX + T - 1.4, T, 0.42],
     ];
-    for (const [x, z, w, d, top] of walls) {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, top + 0.5, d), wallMat);
-      m.position.set(x, (top - 0.5) / 2, z);
-      this.group.add(m);
-    }
+    this.group.add(
+      new THREE.Mesh(
+        mergeGeometries(walls.map(([x, z, w, d, top]) => new THREE.BoxGeometry(w, top + 0.5, d).translate(x, (top - 0.5) / 2, z)))!,
+        wallMat,
+      ),
+    );
 
     // seuil d'entrée lumineux
     const threshold = new THREE.Mesh(

@@ -4,6 +4,7 @@ import { profile } from '../../data/profile';
 import { projects } from '../../data/projects';
 import { FONT_DISPLAY, FONT_MONO, ScreenTexture } from '../core/screen';
 import { NOC } from './layout';
+import { bakeMerge } from '../core/geometry';
 
 const BG = '#020608';
 const CYAN = '#5ce1ff';
@@ -294,6 +295,15 @@ export class Noc {
     );
     mug.position.set(1.35, 0.89, 0.25);
     this.group.add(mug);
+
+    // coques d'écrans, pieds, panneau et clavier : un seul draw call
+    const darkParts: THREE.Mesh[] = [];
+    this.group.traverse((o) => {
+      if (o instanceof THREE.Mesh && o.material === darker) darkParts.push(o);
+    });
+    const merged = bakeMerge(darkParts, this.group, darker);
+    this.pickables.length = 0;
+    this.pickables.push(desk, merged);
   }
 
   update(dt: number, t: number, active: boolean) {
