@@ -52,8 +52,9 @@ function floorMaterial(shared: SharedUniforms, fu: FloorUniforms): THREE.MeshSta
         float var = fh(cell) * 0.06 - 0.03;
         float cold = max(inRect(fp, uCold[0]), inRect(fp, uCold[1]));
         float hot = inRect(fp, uHot);
-        // dalles perforées : une sur deux dans les allées
-        float perfTile = cold * step(0.5, fract((cell.x + cell.y) * 0.5));
+        // dalles perforées : deux rangées devant chaque façade (là où l'air froid est aspiré)
+        float perfTile = cold * step(fp.y, uCold[0].z + 1.2) * step(uCold[0].z, fp.y)
+                       + cold * step(fp.y, uCold[1].z + 1.2) * step(uCold[1].z, fp.y);
         vec2 hp = fract(tile * 8.0) - 0.5;
         float holes = perfTile * (1.0 - smoothstep(0.18, 0.26, length(hp))) * step(max(g.x, g.y), 0.44);
         diffuseColor.rgb += var;

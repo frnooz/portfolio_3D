@@ -190,6 +190,27 @@ export class Robot {
 
     this.group.add(this.rig);
 
+    // silhouette « rayons X » : visible seulement quand une baie cache le robot
+    const xray = new THREE.MeshBasicMaterial({
+      color: EYE,
+      transparent: true,
+      opacity: 0.32,
+      depthFunc: THREE.GreaterDepth,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    });
+    for (const src of [body, skirt, neck]) {
+      const ghost = new THREE.Mesh(src.geometry, xray);
+      ghost.position.copy(src.position);
+      ghost.renderOrder = 10;
+      this.rig.add(ghost);
+    }
+    const ghostHead = new THREE.Mesh(skull.geometry, xray);
+    ghostHead.renderOrder = 10;
+    this.head.add(ghostHead);
+
     // ombre portée douce (pas de shadow map : gratuit)
     this.shadow = new THREE.Mesh(
       new THREE.PlaneGeometry(1.3, 1.3),

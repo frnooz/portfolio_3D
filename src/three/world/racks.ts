@@ -326,6 +326,7 @@ export class Racks {
   private readonly open: Float32Array;
   private readonly openTarget: Float32Array;
   private readonly sledRefs: SledRef[][] = [];
+  private sledRack: Float32Array = new Float32Array(0);
   private readonly doorW = RACK.w - 0.08;
   private readonly doorH = RACK.h - 0.18;
   private readonly m = new THREE.Matrix4();
@@ -415,6 +416,7 @@ export class Racks {
     sledGeo.setAttribute('aLed', new THREE.InstancedBufferAttribute(aLed, 3));
     sledGeo.setAttribute('aSeed', new THREE.InstancedBufferAttribute(aSeed, 1));
     sledGeo.setAttribute('aRack', new THREE.InstancedBufferAttribute(aRack, 1));
+    this.sledRack = aRack;
     this.sleds = new THREE.InstancedMesh(sledGeo, sledMaterial(uniforms), Math.max(1, sledCount));
     this.sleds.count = sledCount;
 
@@ -513,7 +515,15 @@ export class Racks {
     if (sleds) this.sleds.instanceMatrix.needsUpdate = true;
   }
 
-  get drawCalls() {
-    return 5;
+  /**
+   * Identifiant de l'élément visé par un rayon (clic / tap).
+   * `undefined` = l'objet n'est pas une baie ; `null` = baie de décor non interactive.
+   */
+  itemAt(obj: THREE.Object3D, instanceId: number): string | null | undefined {
+    if (obj === this.sleds) return this.specs[this.sledRack[instanceId]]?.itemId ?? null;
+    if (obj === this.bodies || obj === this.doorFrames || obj === this.doorPanels || obj === this.decals) {
+      return this.specs[instanceId]?.itemId ?? null;
+    }
+    return undefined;
   }
 }

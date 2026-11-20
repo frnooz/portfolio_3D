@@ -4,9 +4,8 @@ import type { ProjectLink, SkillLevel } from '../../data/types';
 import type { Item } from '../world/layout';
 import { LEVEL_COLOR } from '../world/layout';
 import { prefersReducedMotion } from '../../shared/env';
+import { esc } from '../../shared/html';
 
-const esc = (s: string) =>
-  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 const paragraphs = (s: string) =>
   s
@@ -180,6 +179,7 @@ export class Panel {
     this.current = item;
     const r = render(item);
     this.root.dataset.kind = item.kind;
+    this.root.setAttribute('aria-labelledby', 'panel-title');
     this.root.innerHTML = `
       <div class="pl-inner">
         <div class="pl-head">

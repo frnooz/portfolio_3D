@@ -28,17 +28,44 @@
         <span>DC-01 · salle serveur</span>
       </a>
       <nav class="hud-actions" aria-label="Commandes de la salle">
+        <button id="btn-map" class="hud-btn" type="button" aria-haspopup="dialog" aria-controls="map"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M1.5 3.5 5.5 2l5 1.5 4-1.5v10.5l-4 1.5-5-1.5-4 1.5zM5.5 2v10.5M10.5 3.5V14"/></svg><span class="lbl">Plan</span><kbd class="kbd-hint">M</kbd></button>
         <a class="hud-btn" href="../classique/"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 3h12M2 8h12M2 13h8"/></svg><span class="lbl">Version classique</span></a>
       </nav>
     </header>
+
+    <div class="hud-inv" id="inventory">
+      <span class="inv-lbl">Inventaire</span>
+      <span class="inv-count"><b id="inv-done">0</b>/<span id="inv-total">0</span></span>
+      <span class="inv-bar" aria-hidden="true"><i id="inv-fill"></i></span>
+    </div>
 
     <ul class="hud-help" aria-label="Commandes clavier">
       <li><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> se déplacer</li>
       <li><kbd>Maj</kbd> turbo</li>
       <li><kbd>Entrée</kbd> lire le panneau</li>
+      <li><kbd>M</kbd> plan</li>
+      <li>clic : y aller</li>
     </ul>
+    <p class="hud-touch" aria-hidden="true">Glisse pour piloter · touche une baie pour y aller</p>
 
-    <section id="panel" class="panel" aria-labelledby="panel-title" hidden></section>
+    <div id="labels" class="labels" aria-hidden="true"></div>
+    <div id="joystick" class="joystick" aria-hidden="true"><div class="joy-knob"></div></div>
+    <div id="toast" class="toast" aria-hidden="true"></div>
+
+    <dialog id="map" class="map" aria-labelledby="map-title">
+      <div class="map-inner">
+        <div class="map-head">
+          <h2 id="map-title">Plan de salle</h2>
+          <button type="button" class="pl-close" data-close-map aria-label="Fermer le plan">
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+        </div>
+        <p class="map-hint">Choisis une destination : le robot y va tout seul.</p>
+        <div class="map-grid" data-capture-keys></div>
+      </div>
+    </dialog>
+
+    <section id="panel" class="panel" aria-label="Détail de la baie" hidden></section>
     <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
     <noscript>

@@ -26,7 +26,7 @@ export const PROJECT_ROW_Z = -7.2;
 export const SKILL_ROW_Z = -1.2;
 export const NOC = { x: 0, z: 4.5, w: 3.8, d: 1.1 };
 export const LEGACY = { x: 0, z: -11.7, w: 2.6, d: 1.3 };
-export const SPAWN = { x: 0, z: 7.2 };
+export const SPAWN = { x: 0, z: 7.95 };
 
 const PROJECT_SPACING = 1.55;
 const SKILL_SPACING = 2.1;

@@ -10,7 +10,7 @@ export class CameraRig {
   private readonly target = new THREE.Vector3();
   private readonly desired = new THREE.Vector3();
   private readonly look = new THREE.Vector3();
-  private readonly dir = new THREE.Vector3(0, 1.12, 1).normalize();
+  private readonly dir = new THREE.Vector3(0, 1.45, 1).normalize();
   private distance = 15;
   private baseDistance = 15;
   private zoom = 1;
@@ -32,7 +32,7 @@ export class CameraRig {
     const aspect = w / h;
     this.camera.aspect = aspect;
     // portrait : on recule pour garder la largeur de l'allée à l'écran
-    this.baseDistance = aspect < 1 ? 15 + (1 - aspect) * 14 : aspect < 1.4 ? 16 : 15;
+    this.baseDistance = aspect < 1 ? 17 + (1 - aspect) * 16 : aspect < 1.4 ? 18 : 17;
     this.camera.updateProjectionMatrix();
   }
 
