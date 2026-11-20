@@ -21,7 +21,7 @@ function reducedMotionGate(): Promise<void> {
     gate.hidden = false;
     document.getElementById('boot')!.classList.add('is-gated');
     const go = gate.querySelector<HTMLButtonElement>('[data-enter]')!;
-    go.focus();
+    gate.querySelector<HTMLAnchorElement>('.primary')?.focus();
     go.addEventListener('click', () => {
       gate.hidden = true;
       document.getElementById('boot')!.classList.remove('is-gated');

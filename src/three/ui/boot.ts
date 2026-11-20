@@ -13,7 +13,7 @@ const wait = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
 export class Boot {
   private readonly root: HTMLElement;
   private readonly logEl: HTMLElement;
-  private readonly bar: HTMLElement;
+  private readonly bar: HTMLProgressElement;
   private readonly pct: HTMLElement;
   private readonly skipBtn: HTMLButtonElement;
   private readonly fast = prefersReducedMotion();
@@ -133,8 +133,8 @@ export class Boot {
 
   private progress() {
     const p = Math.round((this.done / this.total) * 100);
-    this.bar.setAttribute('aria-valuenow', String(p));
-    (this.bar.firstElementChild as HTMLElement).style.width = `${p}%`;
+    this.bar.value = p;
+    this.bar.textContent = `${p} %`;
     this.pct.textContent = `${p} %`;
   }
 

@@ -2,17 +2,63 @@
 <html lang="fr">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Noah Guglielmino</title>
+    <meta name="description" content="Portfolio de Noah Guglielmino, étudiant en BUT Réseaux &amp; Télécoms parcours DevCloud. À explorer en 3D dans une salle serveur, ou en version classique.">
+    <meta name="theme-color" content="#06080a">
+    <meta property="og:title" content="Noah Guglielmino">
+    <meta property="og:description" content="Un portfolio à explorer comme une salle serveur.">
+    <meta property="og:type" content="website">
     <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   </head>
-  <body>
-    <main>
-      <h1>Noah Guglielmino</h1>
-      <ul>
-        <li><a href="./3d/">Explorer la salle serveur (3D)</a></li>
-        <li><a href="./classique/">Version classique</a></li>
-      </ul>
-    </main>
+  <body class="home">
+    <canvas class="field" aria-hidden="true"></canvas>
+    <div class="rail" aria-hidden="true">
+      <span>42</span><span>36</span><span>30</span><span>24</span><span>18</span><span>12</span><span>06</span><span>01</span>
+    </div>
+
+    <div class="frame">
+      <p class="asset" aria-hidden="true"><span class="asset-tag">DC-01</span><span class="asset-led"></span>noah-guglielmino</p>
+
+      <main id="main" class="main">
+        <h1 class="name"><span class="name-l1">Noah</span> <span class="name-l2">Guglielmino</span></h1>
+
+        <p id="notice" class="notice" role="status" hidden></p>
+
+        <section class="ways" aria-labelledby="h-ways">
+          <h2 id="h-ways" class="sr-only">Choisir une version du portfolio</h2>
+          <ul class="ways-list">
+            <li class="way way--3d">
+              <a href="./3d/?choix=3d" class="needs-webgl">
+                <span class="way-k" aria-hidden="true">3D</span>
+                <span class="way-t">Entrer dans la salle serveur</span>
+                <span class="way-d">Interactive — pilote le robot de maintenance</span>
+                <span class="way-arrow" aria-hidden="true">→</span>
+              </a>
+              <p class="way-off">La salle 3D a besoin de WebGL 2, indisponible sur cet appareil.</p>
+            </li>
+            <li class="way way--2d">
+              <a href="./classique/">
+                <span class="way-k" aria-hidden="true">2D</span>
+                <span class="way-t">Version classique <span class="way-rec">recommandée ici</span></span>
+                <span class="way-d">Tout le contenu, sans animation, accessible</span>
+                <span class="way-arrow" aria-hidden="true">→</span>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="index" aria-labelledby="h-index">
+          <h2 id="h-index">Contenu disponible</h2>
+          <ul class="ports"><!--HOME-INDEX--></ul>
+        </section>
+      </main>
+
+      <footer class="foot">
+        <p>© 2026 Noah Guglielmino</p>
+      </footer>
+    </div>
+
+    <script type="module" src="./src/home/main.ts"></script>
   </body>
 </html>
