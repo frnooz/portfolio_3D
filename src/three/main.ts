@@ -8,8 +8,8 @@ import { skillDomains } from '../data/skills';
 
 /**
  * Point d'entrée de la salle 3D.
- * 1. pas de WebGL 2 → version classique, direct
- * 2. animations réduites demandées → on propose la version classique (sauf choix explicite)
+ * 1. pas de WebGL 2 → version 2D, direct
+ * 2. animations réduites demandées → on propose la version 2D (sauf choix explicite)
  * 3. écran de boot pendant le chargement réel de three.js et de la scène
  */
 
@@ -38,7 +38,7 @@ async function run() {
   if (prefersReducedMotion() && params.get('choix') !== '3d') await reducedMotionGate();
 
   const racksCount = projects.length + skillDomains.length;
-  const boot = new Boot(6);
+  const boot = new Boot(5);
   void boot.post(racksCount);
 
   // la scène (et three.js) n'est chargée qu'ici, à la demande
@@ -65,12 +65,6 @@ async function run() {
   const shaders = boot.task('Compilation des shaders');
   await xp.compile();
   await shaders.ok();
-
-  // quelques images rendues sous l'écran de boot fixent la résolution de départ
-  const gpu = boot.task('Calibrage GPU');
-  const cal = await xp.calibrate();
-  const ms = cal.ms.toFixed(1).replace('.', ',');
-  await gpu.ok(`rendu ${cal.width}×${cal.height}, ${ms} ms/image${xp.post.level < 2 ? ', effets allégés' : ''}`);
 
   await boot.service('Started <b>led-blink.service</b> — 100 % GPU');
   await boot.service('Started <b>cooling.service</b> — 18,4 °C');

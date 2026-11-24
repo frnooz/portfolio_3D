@@ -4,8 +4,7 @@ import { RACK } from '../world/layout';
 
 /** Étiquettes flottantes au-dessus des baies (purement visuelles, aria-hidden). */
 export class Labels {
-  /** Dernières valeurs écrites : on ne touche au style que si quelque chose change. */
-  private readonly entries: { item: Item; el: HTMLElement; pos: THREE.Vector3; op: string; tf: string; far: boolean | null }[] = [];
+  private readonly entries: { item: Item; el: HTMLElement; pos: THREE.Vector3 }[] = [];
   private readonly v = new THREE.Vector3();
 
   constructor(items: Item[], container: HTMLElement) {
@@ -18,7 +17,7 @@ export class Labels {
       el.querySelector('.rl-name')!.textContent = item.label;
       container.appendChild(el);
       const y = item.kind === 'about' ? 3.35 : item.kind === 'cv' ? 2.55 : RACK.h + 0.38;
-      this.entries.push({ item, el, pos: new THREE.Vector3(item.fx, y, item.fz), op: '', tf: '', far: null });
+      this.entries.push({ item, el, pos: new THREE.Vector3(item.fx, y, item.fz) });
     }
   }
 
@@ -35,13 +34,9 @@ export class Labels {
       const d = Math.hypot(robot.x - e.item.x, robot.z - e.item.z);
       const near = Math.max(0, Math.min(1, 1.2 - d / 9));
       const op = behind || e.item.id === activeId ? 0 : (0.4 + near * 0.6) * power;
-      // pas de 0,05 : chaque changement relance la transition CSS de 0,25 s, qui lisse déjà
-      const o = (Math.round(op * 20) / 20).toFixed(2);
-      if (o !== e.op) e.el.style.opacity = e.op = o;
-      const far = d > 2.6;
-      if (far !== e.far) e.el.classList.toggle('is-far', (e.far = far));
-      const tf = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -100%)`;
-      if (tf !== e.tf) e.el.style.transform = e.tf = tf;
+      e.el.style.opacity = op.toFixed(2);
+      e.el.classList.toggle('is-far', d > 2.6);
+      e.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -100%)`;
     }
   }
 }

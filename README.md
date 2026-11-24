@@ -207,37 +207,24 @@ Il y a aussi un inventaire de visite, des liens directs vers chaque baie (`/3d/#
   en code (low-poly) ; façades de serveurs, LEDs, sol technique et câbles lumineux sont
   dessinés dans les shaders ; écrans et étiquettes en Canvas 2D. Les polices sont auto-hébergées
   en woff2 (sous-ensembles chargés à la demande).
-- **InstancedMesh** pour toutes les baies : 6 draw calls quel que soit le nombre de projets.
+- **InstancedMesh** pour toutes les baies : 5 draw calls quel que soit le nombre de projets.
   Clignotement des LEDs 100 % GPU.
 - **Physique maison** : cercle contre boîtes, avec glissement le long des obstacles.
   **Pathfinding A\*** sur grille de 25 cm pour le pilote automatique.
-- **Post-process en une passe** : la scène est rendue en HDR (demi-flottants), le bloom
-  (mêmes calculs que l'`UnrealBloomPass` de three.js) reste en petite résolution, puis une
-  seule passe plein écran fait aberration chromatique, bloom, vignette, grain, tone mapping
-  ACES et sRGB, directement dans le canvas. Sur un iGPU Intel : ~3 ms au lieu de ~8,5 ms.
-- **Qualité adaptative** : objectif 60 fps, jamais sous 30. Le temps GPU est mesuré
-  (`EXT_disjoint_timer_query_webgl2`, sinon les fps) et c'est d'abord la **résolution**
-  qui s'adapte (de 100 % à 50 %, le navigateur agrandit le canvas), puis le bloom passe
-  en plus basse définition et les effets volumétriques se coupent (le bloom reste toujours
-  actif). Un **calibrage GPU** pendant l'écran de boot choisit la résolution de départ sur
-  les vues les plus lourdes : pas de baisse de qualité visible après l'intro, et aucun
-  shader recompilé en cours de visite.
+- **Post-process** : bloom en demi-résolution, vignette, grain. **Qualité adaptative**
+  sur 3 niveaux selon les fps mesurés (résolution, bloom, effets volumétriques).
   Une alerte propose la version 2D si l'appareil n'arrive pas à suivre.
-- **Moins de pixels ombrés pour rien**, à image identique au pixel près : three.js trie les
-  objets opaques par matériau et non d'avant en arrière, donc l'ordre de dessin est imposé
-  (sol et murs après ce qu'ils entourent, façades et chemins de câbles avant ce qu'ils cachent,
-  pré-passe de profondeur derrière les serveurs) et les PointLight ne sont calculées que dans
-  leur portée. Sur un iGPU Intel : −3 à −4 ms par image dans les allées.
-- **Cadence régulière** : sur un écran 120/144 Hz, si le GPU est juste, une image sur deux (60/72 i/s stables
-  plutôt qu'une alternance 7/14 ms) ; un GPU qui a de la marge garde la cadence native. Les écrans
-  animés (Canvas 2D) se partagent un seul envoi au GPU par image.
 - **Son 100 % Web Audio** (ventilation, ronflement 50 Hz, turbine du robot), coupé par défaut.
 - **Écran de boot honnête** : chaque `[ OK ]` attend une vraie étape (import de three.js,
-  polices, construction de la scène, compilation des shaders, calibrage du GPU).
+  polices, construction de la scène, compilation des shaders).
+
+> Une réécriture « perf » du post-process 3D a été tentée (commit `6dcc2c0`) puis retirée :
+> hors périmètre de la refonte 2D, et rendu flou (résolution tombée à 50 %) sur les machines lentes.
+> Elle reste récupérable dans l'historique git si on veut la retravailler dans une PR dédiée.
 
 | | |
 | --- | --- |
-| Chunk 3D (three.js inclus), chargé seulement dans `/3d/` | ~175 Ko gzip |
+| Chunk 3D (three.js inclus), chargé seulement dans `/3d/` | ~173 Ko gzip |
 | Rendu de la salle | ~67 draw calls, ~7 300 triangles |
 
 ## Accessibilité et standards

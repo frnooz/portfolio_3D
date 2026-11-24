@@ -12,10 +12,7 @@ const TRAIL = 10;
  */
 export class Cables {
   readonly mesh: THREE.Mesh;
-  /** Points mémorisés : x, z, instant, poids. */
   private readonly trail: THREE.Vector4[] = [];
-  /** Envoyé au GPU : xy = point, w = poids déjà amorti par l'âge (z inutilisé). */
-  private readonly trailGpu: THREE.Vector4[] = [];
   private acc = 0;
   private head = 0;
   readonly uniforms = {
@@ -24,11 +21,8 @@ export class Cables {
   };
 
   constructor(layout: Layout, shared: SharedUniforms, ping: { uPing: { value: THREE.Vector3 }; uPingAmt: { value: number } }) {
-    for (let i = 0; i < TRAIL; i++) {
-      this.trail.push(new THREE.Vector4(0, 0, -999, 0));
-      this.trailGpu.push(new THREE.Vector4());
-    }
-    this.uniforms.uTrail.value = this.trailGpu;
+    for (let i = 0; i < TRAIL; i++) this.trail.push(new THREE.Vector4(0, 0, -999, 0));
+    this.uniforms.uTrail.value = this.trail;
 
     const paths: { x: number; z: number }[][] = [];
     const half = layout.rowHalf;
@@ -127,18 +121,15 @@ export class Cables {
         uniform vec3 uPing; uniform float uPingAmt;
         varying float vDist; varying float vSide; varying vec3 vW;
         void main(){
-          float on = 1.0; // salle allumée (999) : exactement 1
-          if (uPowerRadius < 500.0) on = smoothstep(uPowerRadius, uPowerRadius - 2.0, distance(vW.xz, uPowerOrigin));
+          float on = smoothstep(uPowerRadius, uPowerRadius - 2.0, distance(vW.xz, uPowerOrigin));
           float core = 1.0 - smoothstep(0.2, 1.0, abs(vSide));
-          // traînée : chaque point mémorisé brille puis s'éteint (amorti calculé côté CPU ;
-          // un point éteint, sous 0,1/255, est sauté : robot à l'arrêt = aucune exponentielle)
+          // traînée : chaque point mémorisé brille puis s'éteint
           float glow = 0.0;
           for (int i = 0; i < ${TRAIL}; i++) {
             vec4 tp = uTrail[i];
-            if (tp.w > 2e-5) {
-              vec2 dv = vW.xz - tp.xy;
-              glow += exp(-dot(dv, dv) * 1.6) * tp.w;
-            }
+            float age = uTime - tp.z;
+            float d = distance(vW.xz, tp.xy);
+            glow += exp(-d * d * 1.6) * exp(-age * 1.4) * tp.w;
           }
           float dr = distance(vW.xz, uRobot);
           float near = exp(-dr * dr * 0.5);
@@ -146,11 +137,8 @@ export class Cables {
           float wave = pow(0.5 + 0.5 * sin(dr * 5.0 - uTime * 9.0), 6.0) * exp(-dr * 0.45);
           // trafic de fond : quelques paquets qui circulent en permanence
           float bg = smoothstep(0.96, 1.0, fract(vDist * 0.18 - uTime * 0.25)) * 0.35;
-          float ping = 0.0;
-          if (uPingAmt > 0.0) {
-            float k = (distance(vW.xz, uPing.xy) - uPing.z) * 2.5;
-            ping = exp(-k * k) * uPingAmt;
-          }
+          float dp = distance(vW.xz, uPing.xy);
+          float ping = exp(-pow((dp - uPing.z) * 2.5, 2.0)) * uPingAmt;
           vec3 base = vec3(0.05, 0.09, 0.11);
           vec3 lit = vec3(0.36, 0.88, 1.0);
           float e = clamp(glow * 0.9 + near * 0.8 + wave * 1.6 + bg + ping * 2.5, 0.0, 4.0);
@@ -170,11 +158,6 @@ export class Cables {
       this.acc = 0;
       this.trail[this.head].set(x, z, t, Math.min(1, speed / 3));
       this.head = (this.head + 1) % TRAIL;
-    }
-    // décroissance calculée une fois par image, pas 10 fois par fragment
-    for (let i = 0; i < TRAIL; i++) {
-      const p = this.trail[i];
-      this.trailGpu[i].set(p.x, p.y, 0, p.w * Math.exp(-(t - p.z) * 1.4));
     }
   }
 }

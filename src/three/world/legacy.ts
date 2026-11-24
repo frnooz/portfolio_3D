@@ -7,8 +7,6 @@ import { bakeMerge } from '../core/geometry';
 
 const BEIGE = '#cbbf9f';
 const PHOSPHOR = '#ffb43a';
-/** Converti une fois (Color.set(chaîne) à chaque image = regex + allocations). */
-const BEACON_RGB = new THREE.Color('#ff7a1a');
 
 /** Le vieux serveur du fond : bandes magnétiques, CRT ambre, imprimante matricielle. */
 export class Legacy {
@@ -73,7 +71,6 @@ export class Legacy {
     }, 5);
     const lamps = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.4), this.panel.material(1.3));
     lamps.position.set(-0.6, 0.85, 0.452);
-    lamps.renderOrder = -1; // dessiné avant l'armoire : la face cachée derrière n'est plus ombrée
     this.group.add(lamps);
 
     // plaque « ne pas éteindre »
@@ -91,7 +88,6 @@ export class Legacy {
       }),
     );
     plate.position.set(-0.6, 1.88, 0.452);
-    plate.renderOrder = -1;
     this.group.add(plate);
 
     // gyrophare
@@ -140,7 +136,6 @@ export class Legacy {
     const crtBack = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.34, 0.25), beige);
     crtBack.position.set(0.7, 0.98, -0.3);
     this.group.add(crtBack);
-    let vignette: CanvasGradient | null = null;
     this.crt = new ScreenTexture(256, 200, (g, t, w, h) => {
       g.fillStyle = '#120a02';
       g.fillRect(0, 0, w, h);
@@ -160,18 +155,14 @@ export class Legacy {
       if (Math.floor(t * 2) % 2) g.fillRect(14 + g.measureText(lines[6]).width + 4, 12 + 6 * 24, 10, 18);
       g.fillStyle = 'rgba(0,0,0,0.3)';
       for (let y = 0; y < h; y += 3) g.fillRect(0, y, w, 1);
-      // vignette : taille fixe, dégradé créé une seule fois
-      if (!vignette) {
-        vignette = g.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.8);
-        vignette.addColorStop(0, 'rgba(0,0,0,0)');
-        vignette.addColorStop(1, 'rgba(0,0,0,0.6)');
-      }
-      g.fillStyle = vignette;
+      const v = g.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.8);
+      v.addColorStop(0, 'rgba(0,0,0,0)');
+      v.addColorStop(1, 'rgba(0,0,0,0.6)');
+      g.fillStyle = v;
       g.fillRect(0, 0, w, h);
     }, 6);
     const crtFace = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.34), this.crt.material(1.4));
     crtFace.position.set(0.7, 1.01, 0.232);
-    crtFace.renderOrder = -1;
     this.group.add(crtFace);
 
     // imprimante matricielle + listing qui sort
@@ -226,15 +217,14 @@ export class Legacy {
     return t;
   }
 
-  update(dt: number, t: number, active: boolean, visible = true) {
-    // au plus un écran redessiné par image, tous écrans confondus (budget de ScreenTexture)
-    this.crt.update(dt, visible);
-    this.panel.update(dt, visible);
+  update(dt: number, t: number, active: boolean) {
+    this.crt.update(dt);
+    this.panel.update(dt);
     const spin = active ? 5 : 0.6;
     this.reels[0].rotation.y += dt * spin;
     this.reels[1].rotation.y -= dt * spin * 1.3;
     this.beacon.rotation.y = t * 3.2;
-    this.beaconMat.color.copy(BEACON_RGB).multiplyScalar(2.2 + Math.max(0, Math.sin(t * 3.2 * 2)) * 2);
+    this.beaconMat.color.set('#ff7a1a').multiplyScalar(2.2 + Math.max(0, Math.sin(t * 3.2 * 2)) * 2);
     // le listing sort quand le robot est là, se rétracte lentement sinon
     this.printing = damp(this.printing, active ? 1 : 0, 3, dt);
     this.printed = active ? Math.min(0.75, this.printed + dt * 0.22) : Math.max(0.05, this.printed - dt * 0.12);
