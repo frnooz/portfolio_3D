@@ -42,7 +42,8 @@ function fiberMaterial(u: SharedUniforms): THREE.MeshStandardMaterial {
       .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
-        float pw = smoothstep(uPowerRadius, uPowerRadius - 3.0, distance(vFW.xz, uPowerOrigin));
+        float pw = 1.0; // salle allumée (999) : exactement 1
+        if (uPowerRadius < 500.0) pw = smoothstep(uPowerRadius, uPowerRadius - 3.0, distance(vFW.xz, uPowerOrigin));
         float lane = floor(vFW.z * 6.0);
         float pulse = smoothstep(0.9, 1.0, fract(vFW.x * 0.12 - uTime * (0.35 + fract(lane * 0.37) * 0.3) + lane * 0.29));
         totalEmissiveRadiance += vec3(1.0, 0.72, 0.2) * pulse * 0.9 * pw;`,
@@ -80,6 +81,7 @@ export class Decor {
         body.setMatrixAt(i, m);
         face.setMatrixAt(i, m);
       });
+      face.renderOrder = -1; // dessiné avant sa coque : la face cachée derrière n'est plus ombrée
       this.group.add(body, face);
     }
 
@@ -120,8 +122,11 @@ export class Decor {
       mergeGeometries(trayParts)!,
       new THREE.MeshStandardMaterial({ color: '#2a3138', roughness: 0.5, metalness: 0.7 }),
     );
-    this.group.add(trays);
-    this.group.add(new THREE.Mesh(mergeGeometries(fiberParts)!, fiberMaterial(uniforms)));
+    const fiber = new THREE.Mesh(mergeGeometries(fiberParts)!, fiberMaterial(uniforms));
+    // au plafond, devant les toits et façades des baies : dessinés d'abord, ils évitent d'ombrer
+    // ce qu'ils cachent (three trie les opaques par matériau, pas d'avant en arrière)
+    trays.renderOrder = fiber.renderOrder = -1;
+    this.group.add(trays, fiber);
 
     // ── climatiseurs de précision (CRAC) le long des murs ──
     const cracBodies: THREE.BufferGeometry[] = [];
@@ -162,10 +167,9 @@ export class Decor {
       }
     }
 
-    this.group.add(
-      new THREE.Mesh(mergeGeometries(cracBodies)!, cracSide),
-      new THREE.Mesh(mergeGeometries(cracFronts)!, cracFront),
-    );
+    const cracFace = new THREE.Mesh(mergeGeometries(cracFronts)!, cracFront);
+    cracFace.renderOrder = -1; // avant le caisson qu'elle recouvre
+    this.group.add(new THREE.Mesh(mergeGeometries(cracBodies)!, cracSide), cracFace);
 
     // ── marquages au sol (peinture jaune usée) ──
     const paint = (text: string, sub: string, x: number, z: number, w: number) => {

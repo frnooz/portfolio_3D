@@ -4,8 +4,8 @@ import { clamp, damp, easeOutBack, smoothstep } from '../core/math';
 import { RACK, type RackSpec } from './layout';
 
 /**
- * Toutes les baies en 5 draw calls, quel que soit leur nombre :
- *   coques · cadres de porte · portes vitrées · serveurs · ombres au sol.
+ * Toutes les baies en 6 draw calls, quel que soit leur nombre :
+ *   coques · cadres de porte · portes vitrées · serveurs (+ leur pré-passe de profondeur) · ombres au sol.
  * Les façades de serveurs (grilles, baies de disques, ports, LEDs) sont dessinées
  * procéduralement dans le shader : zéro texture, clignotement 100 % GPU.
  */
@@ -40,6 +40,7 @@ const GLSL_COMMON = /* glsl */ `
   float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
   float dotLed(vec2 p, vec2 c, float r){ return 1.0 - smoothstep(r * 0.45, r, length(p - c)); }
   float powerAt(vec3 wp){
+    if (uPowerRadius > 500.0) return 1.0; // salle allumée (999) : vaut exactement 1, rien à calculer
     float d = distance(wp.xz, uPowerOrigin);
     return smoothstep(uPowerRadius, uPowerRadius - 2.5, d);
   }
@@ -315,6 +316,9 @@ function doorFrameGeometry(dw: number, dh: number): THREE.BufferGeometry {
   return mergeGeometries(parts)!;
 }
 
+/** Profondeur d'un tiroir serveur (m). */
+const SLED_DEPTH = 0.72;
+
 interface SledRef {
   instance: number;
   unitY: number;
@@ -329,6 +333,7 @@ export class Racks {
   private readonly doorFrames: THREE.InstancedMesh;
   private readonly doorPanels: THREE.InstancedMesh;
   private readonly sleds: THREE.InstancedMesh;
+  private readonly sledDepth: THREE.InstancedMesh;
   private readonly decals: THREE.InstancedMesh;
   private readonly open: Float32Array;
   private readonly openTarget: Float32Array;
@@ -427,6 +432,18 @@ export class Racks {
     this.sleds = new THREE.InstancedMesh(sledGeo, sledMaterial(uniforms), Math.max(1, sledCount));
     this.sleds.count = sledCount;
 
+    // ── pré-passe de profondeur des façades ──
+    // Quad invisible (profondeur seule) 7 mm derrière chaque façade de serveur, dessiné en premier :
+    // la face avant de la coque, cachée derrière les serveurs, n'est plus ombrée (rejet early-Z).
+    // Il est à l'intérieur du tiroir (boîte opaque) : il ne cache que ce qui est déjà caché.
+    const plug = new THREE.PlaneGeometry(0.99, 0.99).translate(0, 0, 0.5 - 0.007 / SLED_DEPTH);
+    this.sledDepth = new THREE.InstancedMesh(plug, new THREE.MeshBasicMaterial({ colorWrite: false, fog: false }), Math.max(1, sledCount));
+    this.sledDepth.instanceMatrix = this.sleds.instanceMatrix; // mêmes matrices, même buffer GPU (tiroirs qui glissent inclus)
+    this.sledDepth.count = sledCount;
+    this.sledDepth.renderOrder = -1;
+    this.sledDepth.frustumCulled = false;
+    this.sledDepth.raycast = () => {}; // invisible au picking
+
     // ── ombres de contact ──
     this.decals = new THREE.InstancedMesh(
       new THREE.PlaneGeometry(RACK.w + 0.9, RACK.d + 0.9).rotateX(-Math.PI / 2),
@@ -458,6 +475,7 @@ export class Racks {
     }
     this.bodies.instanceMatrix.setUsage(THREE.StaticDrawUsage);
     this.decals.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+    this.group.add(this.sledDepth);
   }
 
   /** Position locale → monde pour une baie. */
@@ -480,7 +498,7 @@ export class Racks {
   private writeSleds(i: number, t: number) {
     const r = this.specs[i];
     const refs = this.sledRefs[i];
-    const depth = 0.72;
+    const depth = SLED_DEPTH;
     const reach = r.kind === 'skill' ? 0.5 : 0.32;
     this.q.setFromAxisAngle(this.yAxis, r.rot);
     for (const ref of refs) {

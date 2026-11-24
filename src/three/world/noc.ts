@@ -8,6 +8,8 @@ import { bakeMerge } from '../core/geometry';
 
 const BG = '#020608';
 const CYAN = '#5ce1ff';
+/** Converti une fois (Color.set(chaîne) à chaque image = regex + allocations). */
+const CYAN_RGB = new THREE.Color(CYAN);
 const GREEN = '#39e58c';
 const AMBER = '#ffb020';
 const DIM = '#3b5563';
@@ -177,6 +179,9 @@ function drawBoard(): (g: CanvasRenderingContext2D, t: number, w: number, h: num
     projects
       .map((p, i) => `A-${String(i + 1).padStart(2, '0')} ${p.hostname} ${p.status === 'online' ? '▲ EN LIGNE' : p.status === 'building' ? '◆ EN COURS' : '○ SLOT LIBRE'}`)
       .join('   ·   ') + '   ·   ';
+  // bandeau doublé et largeur mesurés une fois (police chargée avant la construction de la salle)
+  const ticker2 = ticker + ticker;
+  let tw = 0;
   return (g, t, w, h) => {
     g.fillStyle = BG;
     g.fillRect(0, 0, w, h);
@@ -211,9 +216,9 @@ function drawBoard(): (g: CanvasRenderingContext2D, t: number, w: number, h: num
     // bandeau
     g.font = `500 22px ${FONT_MONO}`;
     g.fillStyle = '#a9b5c0';
-    const tw = g.measureText(ticker).width;
+    tw ||= g.measureText(ticker).width;
     const off = (t * 70) % tw;
-    g.fillText(ticker + ticker, 20 - off, h - 28);
+    g.fillText(ticker2, 20 - off, h - 28);
     scanlines(g, w, h);
   };
 }
@@ -267,6 +272,7 @@ export class Noc {
       this.screens.push(screen);
       const face = new THREE.Mesh(new THREE.PlaneGeometry(0.92, 0.53), screen.material(1.5));
       face.position.z = 0.027;
+      face.renderOrder = -1; // dessiné avant sa coque : la face cachée derrière n'est plus ombrée
       mon.add(face);
       const stand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.32, 0.06), darker);
       stand.position.set(0, -0.42, -0.02);
@@ -283,6 +289,7 @@ export class Noc {
     this.screens.push(boardScreen);
     const boardFace = new THREE.Mesh(new THREE.PlaneGeometry(3.3, 0.8), boardScreen.material(1.35));
     boardFace.position.set(0, 2.62, -0.375);
+    boardFace.renderOrder = -1; // avant son caisson (même raison)
     this.group.add(boardFace);
 
     // clavier + tasse de café (indispensable en salle serveur)
@@ -306,8 +313,9 @@ export class Noc {
     this.pickables.push(desk, merged);
   }
 
-  update(dt: number, t: number, active: boolean) {
-    for (const s of this.screens) s.update(dt);
-    this.underglow.color.set(CYAN).multiplyScalar(active ? 3.2 + Math.sin(t * 6) * 0.6 : 2.0);
+  update(dt: number, t: number, active: boolean, visible = true) {
+    // au plus un écran redessiné par image, tous écrans confondus (budget de ScreenTexture)
+    for (const s of this.screens) s.update(dt, visible);
+    this.underglow.color.copy(CYAN_RGB).multiplyScalar(active ? 3.2 + Math.sin(t * 6) * 0.6 : 2.0);
   }
 }

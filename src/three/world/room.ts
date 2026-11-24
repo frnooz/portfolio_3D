@@ -80,12 +80,16 @@ function floorMaterial(shared: SharedUniforms, fu: FloorUniforms): THREE.MeshSta
           // allée chaude : lueur orangée
           totalEmissiveRadiance += vec3(0.022, 0.006, 0.002) * hot * (1.0 - seam * 0.6) * power;
           // flaques de lumière sous les néons (éclaire la couleur du sol, pas un simple glow)
+          // (x * x plutôt que pow(x, 2.0) : pow d'un nombre négatif est indéfini en GLSL ES)
           float lx = (fract((fp.x - uLightX.x) / 2.6 + 0.5) - 0.5) * 2.6;
           float inX = smoothstep(uLightX.y + 0.6, uLightX.y - 0.6, abs(fp.x));
           float fx = exp(-lx * lx * 0.32);
-          float pA = fx * exp(-pow(fp.y - uLightZ.x, 2.0) * 0.42);
-          float pB = fx * exp(-pow(fp.y - uLightZ.y, 2.0) * 0.42);
-          float pH = fx * exp(-pow(fp.y - uLightZ.z, 2.0) * 0.42);
+          float dA = fp.y - uLightZ.x;
+          float dB = fp.y - uLightZ.y;
+          float dH = fp.y - uLightZ.z;
+          float pA = fx * exp(-dA * dA * 0.42);
+          float pB = fx * exp(-dB * dB * 0.42);
+          float pH = fx * exp(-dH * dH * 0.42);
           vec3 pool = vec3(0.75, 0.88, 1.0) * (pA + pB) + vec3(1.0, 0.62, 0.32) * pH;
           totalEmissiveRadiance += (diffuseColor.rgb * 1.1 + 0.004) * pool * inX * power;
           // baie active : flaque cyan devant la façade
@@ -96,13 +100,13 @@ function floorMaterial(shared: SharedUniforms, fu: FloorUniforms): THREE.MeshSta
           totalEmissiveRadiance += vec3(0.25, 0.75, 0.95) * exp(-dr * dr * 2.6) * 0.22;
           totalEmissiveRadiance += vec3(0.25, 0.75, 0.95) * seam * exp(-dr * 1.3) * 0.35;
           // ping : anneau qui balaie la salle et révèle le quadrillage
-          float dp = distance(fp, uPing.xy);
-          float ring = exp(-pow((dp - uPing.z) * 3.0, 2.0)) * uPingAmt;
+          float k = (distance(fp, uPing.xy) - uPing.z) * 3.0;
+          float ring = exp(-k * k) * uPingAmt;
           totalEmissiveRadiance += vec3(0.36, 0.88, 1.0) * (ring * 0.9 + ring * seam * 3.0);
         }`,
       );
   };
-  mat.customProgramCacheKey = () => 'floor-v1';
+  mat.customProgramCacheKey = () => 'floor-v2';
   return mat;
 }
 
@@ -164,6 +168,10 @@ export class Room {
     // dalle de faux-plancher : épaisse, on voit sa tranche au sud (effet maquette en coupe)
     const slab = new THREE.Mesh(new THREE.BoxGeometry(W, 0.5, D), floorMaterial(shared, this.floorUniforms));
     slab.position.set(cx, -0.25, cz);
+    // three trie les opaques par matériau (ordre de création), pas d'avant en arrière : le sol,
+    // créé avant les baies, était ombré en entier puis recouvert. Dessiné après les autres opaques,
+    // il n'est plus ombré que là où il se voit (rejet early-Z). Ordre seul : image identique.
+    slab.renderOrder = 1;
     this.group.add(slab);
 
     // vide technique sous le plancher : plots + câbles visibles sur la tranche
@@ -172,6 +180,7 @@ export class Room {
       new THREE.MeshStandardMaterial({ color: '#07090b', roughness: 1 }),
     );
     plenum.position.set(cx, -0.8, cz);
+    plenum.renderOrder = 2; // après le sol, sinon sa face du dessus (toute la salle, à -0,5 m) serait ombrée pour rien
     this.group.add(plenum);
 
     const wallMat = wallMaterial();
@@ -186,12 +195,12 @@ export class Room {
       [(minX - T - 1.4) / 2, maxZ + T / 2, -1.4 - (minX - T), T, 0.42],
       [(maxX + T + 1.4) / 2, maxZ + T / 2, maxX + T - 1.4, T, 0.42],
     ];
-    this.group.add(
-      new THREE.Mesh(
-        mergeGeometries(walls.map(([x, z, w, d, top]) => new THREE.BoxGeometry(w, top + 0.5, d).translate(x, (top - 0.5) / 2, z)))!,
-        wallMat,
-      ),
+    const wallMesh = new THREE.Mesh(
+      mergeGeometries(walls.map(([x, z, w, d, top]) => new THREE.BoxGeometry(w, top + 0.5, d).translate(x, (top - 0.5) / 2, z)))!,
+      wallMat,
     );
+    wallMesh.renderOrder = 1; // murs en partie cachés par les baies, CRAC et legacy : plus ombrés pour rien
+    this.group.add(wallMesh);
 
     // seuil d'entrée lumineux
     const threshold = new THREE.Mesh(

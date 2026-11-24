@@ -86,20 +86,35 @@ export class Sound {
     this.motorOsc.start();
   }
 
+  private sleepTimer = 0;
+  private lastS = -1;
+  private lastBoost = false;
+
   setEnabled(on: boolean) {
     this.enabled = on;
     if (on) this.init();
     if (!this.ctx) return;
+    window.clearTimeout(this.sleepTimer);
     if (on && this.ctx.state === 'suspended') void this.ctx.resume();
+    this.lastS = -1;
     const t = this.ctx.currentTime;
     this.master.gain.cancelScheduledValues(t);
     this.master.gain.setTargetAtTime(on ? 0.5 : 0, t, on ? 0.6 : 0.15);
+    // coupé : une fois le fondu fini, on endort le graphe (plus aucun calcul sur le thread audio)
+    if (!on)
+      this.sleepTimer = window.setTimeout(() => {
+        if (!this.enabled) void this.ctx?.suspend();
+      }, 1200);
   }
 
   update(speed: number, boost: boolean) {
     if (!this.ctx || !this.enabled) return;
-    const t = this.ctx.currentTime;
     const s = Math.min(1, speed / 6);
+    // automation seulement quand la consigne bouge vraiment (rien du tout à l'arrêt)
+    if (Math.abs(s - this.lastS) < 0.005 && boost === this.lastBoost) return;
+    this.lastS = s;
+    this.lastBoost = boost;
+    const t = this.ctx.currentTime;
     this.motorGain.gain.setTargetAtTime(0.018 + s * 0.05, t, 0.08);
     this.motorOsc.frequency.setTargetAtTime(80 + s * 140 + (boost ? 40 : 0), t, 0.1);
     this.motorFilter.frequency.setTargetAtTime(300 + s * 1400, t, 0.1);

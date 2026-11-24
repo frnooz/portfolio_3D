@@ -1,3 +1,4 @@
+import './core/lights'; // patch des shaders three : avant toute compilation
 import * as THREE from 'three';
 import { clamp, damp, easeInOutCubic, smoothstep } from './core/math';
 import { buildLayout, LEGACY, NOC, RACK, SPAWN, type Item, type Layout } from './world/layout';
@@ -7,11 +8,12 @@ import { Room } from './world/room';
 import { Decor } from './world/decor';
 import { Noc } from './world/noc';
 import { Legacy } from './world/legacy';
-import { Atmosphere } from './world/atmosphere';
+import { Atmosphere, lightRows } from './world/atmosphere';
 import { Cables } from './world/cables';
+import { ScreenTexture } from './core/screen';
 import { Post, type QualityLevel } from './systems/post';
 import { Sound } from './systems/audio';
-import { isCoarsePointer, store } from '../shared/env';
+import { store } from '../shared/env';
 import { CameraRig } from './systems/cameraRig';
 import { Input } from './systems/input';
 import { NavGrid } from './systems/nav';
@@ -23,6 +25,9 @@ import { TouchControls } from './ui/touch';
 import { Toast } from './ui/toast';
 
 const MAX_DOTS = 160;
+/** Plongée de départ de l'intro (la salle vue de haut). */
+const INTRO_POS = new THREE.Vector3(4, 27, 21);
+const INTRO_LOOK = new THREE.Vector3(0, 0, -3.2);
 
 export class Experience {
   readonly renderer: THREE.WebGLRenderer;
@@ -80,9 +85,27 @@ export class Experience {
   private readonly floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private hoverAcc = 0;
 
+  // écrans animés : on ne les redessine que s'ils sont dans le champ
+  private readonly frustum = new THREE.Frustum();
+  private readonly viewProj = new THREE.Matrix4();
+  private readonly nocSphere = new THREE.Sphere();
+  private readonly legacySphere = new THREE.Sphere();
+  private readonly tmpV = new THREE.Vector3();
+  private readonly tmpM = new THREE.Matrix4();
+
+  // cadence
+  /** Plafond de cadence sur écrans > 100 Hz quand le GPU est juste ; `?fps-max` (ou `false`) le lève, pour mesurer le débit brut. */
+  frameCap = !new URLSearchParams(window.location.search).has('fps-max');
+  private lastFrame = -1e9;
+  /** Dernière image rendue pendant que le plan est ouvert. */
+  private mapFrame = 0;
+  private resizePending = false;
+
   constructor() {
     this.canvas = document.getElementById('scene') as HTMLCanvasElement;
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
+    // le canvas ne reçoit que la passe finale plein écran : ni MSAA ni profondeur à payer
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false, depth: false, powerPreference: 'high-performance' });
+    // appliqués par la passe finale (la scène est rendue en HDR linéaire)
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.1;
 
@@ -127,17 +150,24 @@ export class Experience {
       MAX_DOTS,
     );
     this.dots.count = 0;
+    this.dots.visible = false; // 0 pastille : pas de draw call vide (programme quand même précompilé)
     this.dots.frustumCulled = false;
     this.scene.add(this.dots);
 
     this.robot.position.set(SPAWN.x, 0, SPAWN.z);
     this.rig = new CameraRig(window.innerWidth / window.innerHeight);
 
-    this.post = new Post(this.renderer, this.scene, this.rig.camera, isCoarsePointer() ? 1 : 2);
-    this.post.onChange = (level: QualityLevel, dpr: number) => this.atmosphere.setQuality(level, dpr);
+    this.post = new Post(this.renderer, this.scene, this.rig.camera, 2);
+    this.post.onChange = (level: QualityLevel, pixelRatio: number) => this.atmosphere.setQuality(level, pixelRatio);
     this.post.onStruggle = () =>
       this.toast.show('Ton appareil a du mal avec la 3D — la version classique est dispo en haut à droite.', 'warn', 7000);
-    this.atmosphere.setQuality(this.post.level, this.post.dpr);
+    this.atmosphere.setQuality(this.post.level, this.post.pixelRatio);
+
+    // poste de supervision et vieux serveur ne bougent pas : sphères englobantes calculées une fois
+    for (const [g, sphere] of [[this.noc.group, this.nocSphere], [this.legacy.group, this.legacySphere]] as const) {
+      g.updateMatrixWorld(true);
+      new THREE.Box3().setFromObject(g).getBoundingSphere(sphere);
+    }
 
     // son : coupé par défaut, choix mémorisé (mais jamais relancé sans geste de l'utilisateur)
     const soundBtn = document.getElementById('btn-sound')!;
@@ -180,15 +210,34 @@ export class Experience {
 
     this.resize();
     this.rig.snap(this.robot.position);
-    window.addEventListener('resize', this.resize);
+    window.addEventListener('resize', () => (this.resizePending = true));
+    this.watchPixelRatio();
     window.addEventListener('hashchange', () => this.followHash());
   }
 
   /** Compile tous les shaders pendant l'écran de boot (pas de saccade au premier rendu). */
   async compile() {
     this.uniforms.uPowerRadius.value = 999;
-    await this.renderer.compileAsync(this.scene, this.rig.camera);
-    this.post.render(0, 0);
+    await this.post.compile();
+  }
+
+  /**
+   * Calibrage GPU sous l'écran de boot : vue de départ, allée entre deux rangées,
+   * plongée de l'intro. Fixe la résolution de départ avant la première image visible.
+   */
+  async calibrate() {
+    const cam = this.rig.camera;
+    const at = new THREE.Vector3(2, 0, lightRows(this.layout)[0].z);
+    const res = await this.post.calibrate([
+      () => this.rig.snap(this.robot.position),
+      () => this.rig.snap(at),
+      () => {
+        cam.position.copy(INTRO_POS);
+        cam.lookAt(INTRO_LOOK);
+      },
+    ]);
+    this.rig.snap(this.robot.position);
+    return res;
   }
 
   /** Lance la boucle. Avec `intro` : la salle s'allume en vague et la caméra plonge sur le robot. */
@@ -199,8 +248,8 @@ export class Experience {
       this.uniforms.uPowerRadius.value = 0;
       this.uniforms.uPowerOrigin.value.set(0, NOC.z + 1.5);
       this.rig.cinematic = 1;
-      this.rig.cinePos.set(4, 27, 21);
-      this.rig.cineLook.set(0, 0, -3.2);
+      this.rig.cinePos.copy(INTRO_POS);
+      this.rig.cineLook.copy(INTRO_LOOK);
       this.robot.setMood('sleep', 99);
       this.keyLight.intensity = 0.1;
       this.input.enabled = false;
@@ -216,6 +265,7 @@ export class Experience {
     }
     this.timer.connect(document);
     this.timer.reset();
+    this.post.begin(intro ? 3.9 : 0);
     this.renderer.setAnimationLoop(this.tick);
   }
 
@@ -345,6 +395,7 @@ export class Experience {
   private stopAutopilot() {
     this.path = null;
     this.dots.count = 0;
+    this.dots.visible = false;
   }
 
   private layDots(x0: number, z0: number, path: { x: number; z: number }[]) {
@@ -368,6 +419,7 @@ export class Experience {
       pz = pt.z;
     }
     this.dots.count = n;
+    this.dots.visible = n > 0;
     this.dotCount = n;
     this.dotIndex = 0;
     this.dots.instanceMatrix.needsUpdate = true;
@@ -399,8 +451,8 @@ export class Experience {
     out.z = (dz / d) * speed;
 
     // efface les pastilles déjà parcourues
-    const tmp = new THREE.Vector3();
-    const m = new THREE.Matrix4();
+    const tmp = this.tmpV;
+    const m = this.tmpM;
     while (this.dotIndex < this.dotCount) {
       this.dots.getMatrixAt(this.dotIndex, m);
       tmp.setFromMatrixPosition(m);
@@ -416,6 +468,7 @@ export class Experience {
       this.dotCount -= this.dotIndex;
       this.dotIndex = 0;
       this.dots.count = this.dotCount;
+      this.dots.visible = this.dotCount > 0;
       this.dots.instanceMatrix.needsUpdate = true;
     }
   }
@@ -535,7 +588,35 @@ export class Experience {
     this.rig.resize(this.w, this.h);
   };
 
+  /** Fenêtre déplacée vers un écran d'une autre densité : on suit le nouveau pixel ratio. */
+  private watchPixelRatio() {
+    const mq = window.matchMedia?.(`(resolution: ${window.devicePixelRatio}dppx)`);
+    mq?.addEventListener(
+      'change',
+      () => {
+        this.resize();
+        this.watchPixelRatio();
+      },
+      { once: true },
+    );
+  }
+
+  /** Vrai si la sphère est dans le champ de la caméra (frustum calculé dans `tick`). */
+  private inView(sphere: THREE.Sphere) {
+    return this.frustum.intersectsSphere(sphere);
+  }
+
   private tick = (now: number) => {
+    // écran 120/144 Hz et GPU juste : une image sur deux → 60/72 i/s réguliers (au lieu d'une
+    // alternance 7/14 ms), le GPU garde de la marge et chauffe moins. Sans effet à 60–100 Hz
+    // (seuil à mi-chemin entre 100 et 120 Hz), ni quand le GPU mesuré a de la marge (cadence native).
+    if (this.frameCap && !this.post.roomy && now - this.lastFrame < 9.2) return;
+    this.lastFrame = now;
+    // redimensionnement : au plus une réallocation par image, même pendant un glisser de fenêtre
+    if (this.resizePending) {
+      this.resizePending = false;
+      this.resize();
+    }
     this.timer.update(now);
     const dt = Math.min(this.timer.getDelta(), 1 / 20);
     this.time += dt;
@@ -576,12 +657,26 @@ export class Experience {
 
     this.updateInteraction(dt);
     this.racks.update(dt);
-    this.noc.update(dt, t, this.active?.kind === 'about');
-    this.legacy.update(dt, t, this.active?.kind === 'cv');
     (this.dots.material as THREE.MeshBasicMaterial).opacity = 0.55 + Math.sin(t * 6) * 0.3;
 
     this.rig.update(dt, this.robot.position, this.robot.velocity, this.active ? this.focus : null, this.panel.isOpen, this.compact);
-    this.labels.update(this.rig.camera, this.robot.position, this.active?.id ?? null, this.w, this.h, 1);
+
+    // plan ouvert : la salle n'est plus qu'un fond assombri (voile à 72 %) → 15 i/s suffisent
+    const skip = this.map.isOpen && now - this.mapFrame < 66;
+    // écrans animés : redessinés seulement s'ils sont dans le champ de la caméra de cette image
+    const cam = this.rig.camera;
+    cam.updateMatrixWorld();
+    this.frustum.setFromProjectionMatrix(this.viewProj.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    ScreenTexture.beginFrame();
+    this.noc.update(dt, t, this.active?.kind === 'about', !skip && this.inView(this.nocSphere));
+    this.legacy.update(dt, t, this.active?.kind === 'cv', !skip && this.inView(this.legacySphere));
+    if (skip) {
+      this.post.hold(); // image volontairement sautée : la qualité adaptative ne doit pas la compter
+      return;
+    }
+    this.mapFrame = now;
+    // pendant l'intro les étiquettes sont masquées (fondu CSS) : rien à écrire
+    if (!this.introOn) this.labels.update(cam, this.robot.position, this.active?.id ?? null, this.w, this.h, 1);
     this.post.render(dt, t);
   };
 }

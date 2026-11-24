@@ -54,6 +54,8 @@ export class Atmosphere {
         uniform float uPowerRadius; uniform vec2 uPowerOrigin; uniform float uTime;
         varying vec3 vColor; varying vec3 vW;
         void main(){
+          // salle allumée (999) : on = flick = 1 exactement, rien d'autre à calculer
+          if (uPowerRadius > 500.0) { gl_FragColor = vec4(vColor * 1.05, 1.0); return; }
           float d = distance(vW.xz, uPowerOrigin);
           float on = smoothstep(uPowerRadius, uPowerRadius - 1.5, d);
           // scintillement de néon à l'allumage
@@ -95,7 +97,8 @@ export class Atmosphere {
         uniform float uPowerRadius; uniform vec2 uPowerOrigin; uniform float uTime;
         varying vec3 vColor; varying float vH; varying float vFres; varying vec3 vW;
         void main(){
-          float on = smoothstep(uPowerRadius - 1.0, uPowerRadius - 4.0, distance(vW.xz, uPowerOrigin));
+          float on = 1.0; // salle allumée (999) : exactement 1
+          if (uPowerRadius < 500.0) on = smoothstep(uPowerRadius - 1.0, uPowerRadius - 4.0, distance(vW.xz, uPowerOrigin));
           float a = (1.0 - vH) * (1.0 - vH) * vFres * 0.045;
           a *= 0.9 + 0.1 * sin(uTime * 0.8 + vW.x);
           gl_FragColor = vec4(vColor * a * on, 1.0);
@@ -155,7 +158,9 @@ export class Atmosphere {
             p.z += cos(t * 2.0 + aSeed * 23.0) * 0.6;
             // plus lumineuse dans les faisceaux des néons
             float beam = 0.0;
-            ${lightZ.map((z) => `beam = max(beam, exp(-pow(p.z - (${z.toFixed(2)}), 2.0) * 0.6));`).join('\n')}
+            float dz;
+            // dz * dz plutôt que pow(dz, 2.0) : pow d'un nombre négatif est indéfini en GLSL ES
+            ${lightZ.map((z) => `dz = p.z - (${z.toFixed(2)}); beam = max(beam, exp(-dz * dz * 0.6));`).join('\n')}
             float sx = fract(p.x / ${LIGHT_SPACING.toFixed(2)} + 0.5) - 0.5;
             beam *= exp(-sx * sx * 9.0);
             vA = (0.12 + beam * 0.9) * smoothstep(0.0, 0.4, p.y) * smoothstep(3.4, 2.6, p.y);
@@ -199,7 +204,8 @@ export class Atmosphere {
           vec2 p = vW.xz * 0.9 + vec2(uTime * 0.07, -uTime * 0.11);
           float f = n(p) * 0.6 + n(p * 2.3 - uTime * 0.05) * 0.4;
           float edge = smoothstep(0.0, 0.25, vUv.x) * smoothstep(1.0, 0.75, vUv.x) * smoothstep(0.0, 0.3, vUv.y) * smoothstep(1.0, 0.6, vUv.y);
-          float on = smoothstep(uPowerRadius, uPowerRadius - 3.0, distance(vW.xz, uPowerOrigin));
+          float on = 1.0; // salle allumée (999) : exactement 1
+          if (uPowerRadius < 500.0) on = smoothstep(uPowerRadius, uPowerRadius - 3.0, distance(vW.xz, uPowerOrigin));
           float a = smoothstep(0.35, 0.9, f) * edge * 0.09 * on;
           gl_FragColor = vec4(vec3(0.45, 0.8, 1.0) * a, 1.0);
         }`,

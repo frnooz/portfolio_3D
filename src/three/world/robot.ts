@@ -9,6 +9,9 @@ const SHELL = '#d6d3cb';
 const DARK = '#171c21';
 const AMBER = '#ffb020';
 const EYE = '#5ce1ff';
+/** Convertis une fois (Color.set(chaîne) à chaque image = regex + allocations). */
+const EYE_RGB = new THREE.Color(EYE);
+const ANTENNA_RGB = new THREE.Color('#ff5a4e');
 
 /** Texture « ruban de chantier » jaune/noir, générée en canvas. */
 function hazardTexture(): THREE.CanvasTexture {
@@ -337,14 +340,12 @@ export class Robot {
     // anneau de lévitation : plus lumineux en turbo
     const ringMat = this.hoverRing.material as THREE.MeshBasicMaterial;
     const glow = 1.6 + speed * 0.5 + (boost && speed > 1 ? 2.5 : 0) + Math.sin(this.t * 20) * 0.15;
-    ringMat.color.set(EYE).multiplyScalar(glow);
+    ringMat.color.copy(EYE_RGB).multiplyScalar(glow);
     this.hoverRing.scale.setScalar(1 + Math.sin(this.t * 6) * 0.04);
 
     // antenne : flash bref toutes les 1,4 s
     const phase = this.t % 1.4;
-    (this.antennaTip.material as THREE.MeshBasicMaterial).color
-      .set('#ff5a4e')
-      .multiplyScalar(phase < 0.12 ? 4 : 0.35);
+    (this.antennaTip.material as THREE.MeshBasicMaterial).color.copy(ANTENNA_RGB).multiplyScalar(phase < 0.12 ? 4 : 0.35);
 
     // pirouette
     if (this.spin > 0) {

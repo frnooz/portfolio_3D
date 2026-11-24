@@ -27,13 +27,31 @@ export class ScreenTexture {
     this.draw(this.ctx, 0, width, height);
   }
 
-  update(dt: number) {
+  /** Budget partagé par tous les écrans : au plus un redessiné (canvas + envoi GPU + mipmaps) par image. */
+  private static budget = 1;
+
+  /** À appeler une fois par image, avant les `update` des écrans. */
+  static beginFrame() {
+    ScreenTexture.budget = 1;
+  }
+
+  /**
+   * `canDraw` à faux (hors champ) : le temps avance mais on ne redessine ni ne renvoie rien au GPU.
+   * Un écran dû attend une image libre (1 ou 2 images de retard au pire, invisible à 4–10 i/s).
+   * Renvoie vrai si l'écran a été redessiné.
+   */
+  update(dt: number, canDraw = true): boolean {
     this.t += dt;
     this.acc += dt;
-    if (this.acc < 1 / this.fps) return;
-    this.acc = 0;
+    const period = 1 / this.fps;
+    if (!canDraw || this.acc < period || ScreenTexture.budget <= 0) return false;
+    ScreenTexture.budget--;
+    // phase conservée (pas de remise à zéro) : cadence nominale tenue, et deux écrans de même
+    // cadence ne retombent plus sur la même image ; retour dans le champ après une absence : on repart de zéro
+    this.acc = this.acc > period * 3 ? 0 : Math.min(this.acc - period, period);
     this.draw(this.ctx, this.t, this.width, this.height);
     this.texture.needsUpdate = true;
+    return true;
   }
 
   /** Matériau « écran » : non éclairé, assez lumineux pour déclencher le bloom. */
