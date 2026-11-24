@@ -160,7 +160,7 @@ export class Experience {
     this.post = new Post(this.renderer, this.scene, this.rig.camera, 2);
     this.post.onChange = (level: QualityLevel, pixelRatio: number) => this.atmosphere.setQuality(level, pixelRatio);
     this.post.onStruggle = () =>
-      this.toast.show('Ton appareil a du mal avec la 3D — la version classique est dispo en haut à droite.', 'warn', 7000);
+      this.toast.show('Ton appareil a du mal avec la 3D — la version 2D est dispo en haut à droite.', 'warn', 7000);
     this.atmosphere.setQuality(this.post.level, this.post.pixelRatio);
 
     // poste de supervision et vieux serveur ne bougent pas : sphères englobantes calculées une fois

@@ -1,0 +1,317 @@
+/* ── 01 · hero : fiche technique + mur de baies ─────────── */
+.sec-accueil {
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: var(--hdr) 0 0;
+  border-top: 0;
+  overflow: hidden;
+}
+
+.no-js .sec-accueil {
+  padding-top: 0;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  /* repli sans JS : des colonnes de baies dessinées en CSS */
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 9px, color-mix(in srgb, var(--line) 60%, transparent) 9px 10px),
+    repeating-linear-gradient(90deg, transparent 0 10px, var(--line) 10px 11px, transparent 11px 56px, var(--line) 56px 57px, transparent 57px 78px);
+}
+
+.enh .hero-bg {
+  background: none;
+}
+
+.hero-wall {
+  position: absolute;
+  top: -24px;
+  left: -24px;
+  display: block;
+  width: calc(100% + 48px);
+  height: calc(100% + 48px);
+}
+
+.hero-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, var(--bg) 4%, color-mix(in srgb, var(--bg) 0%, transparent) 42%),
+    linear-gradient(100deg, var(--bg) 8%, color-mix(in srgb, var(--bg) 82%, transparent) 46%, color-mix(in srgb, var(--bg) 25%, transparent) 100%);
+}
+
+.hero-in {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding: 18px var(--gx) clamp(28px, 4vw, 48px);
+}
+
+.statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+  margin: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+  font: var(--mono-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sb-k {
+  padding: 2px 6px;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 500;
+}
+
+.sb-i {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sb-clock[hidden] {
+  display: none;
+}
+
+.clock {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-main {
+  margin-top: auto;
+  padding-top: clamp(40px, 8vh, 96px);
+}
+
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 28px;
+  margin: 0 0 clamp(14px, 2vw, 22px);
+  color: var(--text-3);
+  font: var(--mono-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hero-meta span:first-child {
+  color: var(--ok);
+}
+
+.hero-name {
+  position: relative;
+  container-type: inline-size;
+  margin: 0;
+  font-weight: 800;
+  font-stretch: 125%;
+  line-height: 0.8;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+}
+
+.hero-name .split {
+  display: block;
+}
+
+.hn-l {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.18em;
+  white-space: nowrap;
+  font-size: 10.8cqi;
+}
+
+/* filet technique qui prolonge la première ligne */
+.hn-l:first-child::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  margin-bottom: 0.14em;
+  background: linear-gradient(90deg, var(--line-strong), transparent);
+}
+
+.hn-l + .hn-l {
+  margin-top: 0.06em;
+}
+
+/* balayage de scanline horizontal (piloté par .hero-go) */
+.hero-scan {
+  position: absolute;
+  inset: -6% 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hero-scan::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 55%, color-mix(in srgb, var(--info) 16%, transparent) calc(100% - 2px), var(--info) calc(100% - 2px));
+  opacity: 0;
+  transform: translateX(-100%);
+}
+
+.hero-foot {
+  display: grid;
+  gap: 32px;
+  margin-top: clamp(28px, 4vw, 56px);
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 56em) {
+  .hero-foot {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 64px;
+  }
+}
+
+.spec {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.spec div {
+  display: grid;
+  gap: 2px;
+}
+
+@media (min-width: 40em) {
+  .spec div {
+    grid-template-columns: 112px 1fr;
+    gap: 16px;
+    align-items: baseline;
+  }
+}
+
+.spec dt {
+  color: var(--text-3);
+  font: var(--mono-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.spec dd {
+  margin: 0;
+  font-size: clamp(16px, 1.35vw, 20px);
+  line-height: 1.35;
+  font-stretch: 108%;
+}
+
+.hero-index ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.hero-index li {
+  border-bottom: 1px solid var(--line);
+}
+
+.site .hero-index a {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  min-height: 44px;
+  padding-block: 4px;
+  text-decoration: none;
+  color: var(--text-2);
+  font: var(--mono-s);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ix-n,
+.ix-u {
+  color: var(--text-3);
+}
+
+.ix-l {
+  transition: transform 0.35s var(--ease);
+}
+
+.site .hero-index a:hover {
+  color: var(--text);
+}
+
+.hero-index a:hover .ix-l {
+  transform: translateX(8px);
+}
+
+.hero-index a:hover .ix-n {
+  color: var(--info);
+}
+
+/* bandeau d'état qui défile (décoratif, pause au survol / bouton « Animations ») */
+.marquee {
+  position: relative;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  overflow: hidden;
+  color: var(--text-2);
+  font: var(--mono-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mq-track {
+  display: flex;
+  width: max-content;
+}
+
+.js:not(.motion-off) .mq-track {
+  animation: mq 48s linear infinite;
+}
+
+.marquee:hover .mq-track,
+.mq-track.paused {
+  animation-play-state: paused !important;
+}
+
+.mq-run {
+  display: flex;
+  gap: 44px;
+  padding: 12px 44px 12px 0;
+}
+
+.mq-i {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.mq-i em {
+  font-style: normal;
+  color: var(--text-3);
+}
+
+.mq-run + .mq-run {
+  display: none;
+}
+
+.js .mq-run + .mq-run {
+  display: flex;
+}
+
+@keyframes mq {
+  to {
+    transform: translateX(-50%);
+  }
+}

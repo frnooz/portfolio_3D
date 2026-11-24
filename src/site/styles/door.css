@@ -1,0 +1,338 @@
+/* ── 06 · le sas : porte blindée « accès au datacenter » ── */
+.door-wrap {
+  position: relative;
+}
+
+.door {
+  position: relative;
+  display: grid;
+  gap: 20px;
+  max-width: 1180px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.site .door:hover {
+  color: var(--text);
+}
+
+@media (min-width: 56em) {
+  .door {
+    grid-template-columns: minmax(0, 1fr) 180px;
+    align-items: center;
+    gap: 28px;
+  }
+}
+
+.door:focus-visible {
+  outline-offset: 8px;
+}
+
+.door-label {
+  grid-column: 1 / -1;
+  order: 3;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: var(--text);
+  font: 500 clamp(13px, 1.1vw, 15px) / 1.3 var(--font-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.door-label::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: currentColor;
+}
+
+/* cadre : béton + bandes de chantier */
+.door-frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 21 / 9;
+  border: 1px solid var(--line-strong);
+  background:
+    radial-gradient(circle at 20% 30%, rgb(255 255 255 / 0.02), transparent 40%),
+    var(--bg-2);
+  overflow: hidden;
+}
+
+.hazard {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: clamp(14px, 2.4vw, 26px);
+  background: repeating-linear-gradient(-45deg, var(--hazard) 0 14px, #0b0c0d 14px 28px);
+}
+
+.hazard-t {
+  top: 0;
+}
+
+.hazard-b {
+  bottom: 0;
+}
+
+.door-gap {
+  position: absolute;
+  inset: clamp(14px, 2.4vw, 26px) 9% clamp(14px, 2.4vw, 26px);
+  overflow: hidden;
+  border-inline: 8px solid #2a333b;
+  background: #020304;
+}
+
+/* la salle, entrevue derrière la porte */
+.door-room {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle, #39e58c 0.9px, transparent 1.4px) 3px 2px / 11px 7px,
+    repeating-linear-gradient(90deg, #0b1013 0 34px, #020304 34px 46px);
+  opacity: 0.55;
+}
+
+.door-glow {
+  position: absolute;
+  inset: -10%;
+  background: radial-gradient(ellipse at 50% 55%, rgb(92 225 255 / 0.55), rgb(57 229 140 / 0.12) 38%, transparent 62%);
+  opacity: 0.18;
+  transition:
+    opacity 0.6s var(--ease),
+    transform 0.8s var(--ease);
+}
+
+.leaf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.04), transparent 30%),
+    linear-gradient(90deg, var(--metal-1), var(--metal-2));
+  transition: transform 0.8s var(--ease);
+}
+
+.leaf-l {
+  left: 0;
+  border-right: 1px solid #07090b;
+}
+
+.leaf-r {
+  right: 0;
+  border-left: 1px solid #39444e;
+}
+
+.leaf-plate {
+  position: absolute;
+  top: 12%;
+  left: 12%;
+  right: 12%;
+  padding: 6px 8px;
+  border: 1px solid #3a4550;
+  color: #c9d2da;
+  font: 500 clamp(8px, 1vw, 11px) / 1.2 var(--font-mono);
+  letter-spacing: 0.16em;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.leaf-win {
+  position: absolute;
+  top: 30%;
+  left: 38%;
+  width: 24%;
+  height: 22%;
+  border: 2px solid #3a4550;
+  background: linear-gradient(160deg, #0a1216, #0b2026 60%, #0f3a3a);
+  box-shadow: inset 0 0 12px rgb(92 225 255 / 0.18);
+}
+
+.leaf-bars {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 14%;
+  display: grid;
+  gap: 8%;
+  height: 22%;
+}
+
+.leaf-bars i {
+  border-top: 1px solid #39444e;
+  border-bottom: 1px solid #0b0e11;
+}
+
+.leaf-rivets {
+  position: absolute;
+  inset: 4% 4%;
+  background:
+    radial-gradient(circle, #46525d 1.4px, transparent 2px) left top / 100% 25% repeat-y,
+    radial-gradient(circle, #46525d 1.4px, transparent 2px) right top / 100% 25% repeat-y;
+  background-size: 6px 25%;
+}
+
+/* survol / focus : badge accepté, la porte s'entrouvre sur la lueur de la salle */
+.door[href]:hover .leaf-l,
+.door[href]:focus-visible .leaf-l {
+  transform: translateX(-9%);
+}
+
+.door[href]:hover .leaf-r,
+.door[href]:focus-visible .leaf-r {
+  transform: translateX(9%);
+}
+
+.door[href]:hover .door-glow,
+.door[href]:focus-visible .door-glow {
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+/* lecteur de badge */
+.reader {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-1);
+  font: var(--mono-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 55.99em) {
+  .reader {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+
+  .reader-slot {
+    display: none !important;
+  }
+}
+
+.reader-led {
+  width: 100%;
+  min-width: 28px;
+  height: 6px;
+  background: var(--led-warn);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--led-warn) 70%, transparent);
+  transition:
+    background-color 0.3s,
+    box-shadow 0.3s;
+}
+
+.reader-s {
+  color: var(--text-2);
+}
+
+.reader-ok,
+.reader-off {
+  display: none;
+}
+
+.reader-slot {
+  height: 72px;
+  border: 1px solid var(--line-strong);
+  background:
+    linear-gradient(var(--bg), var(--bg)) center / 60% 3px no-repeat,
+    repeating-linear-gradient(0deg, transparent 0 5px, var(--line) 5px 6px);
+}
+
+.door[href]:hover .reader-led,
+.door[href]:focus-visible .reader-led,
+.door.opening .reader-led {
+  background: var(--led-ok);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--led-ok) 80%, transparent);
+}
+
+.door[href]:hover .reader-wait,
+.door[href]:focus-visible .reader-wait,
+.door.opening .reader-wait {
+  display: none;
+}
+
+.door[href]:hover .reader-ok,
+.door[href]:focus-visible .reader-ok,
+.door.opening .reader-ok {
+  display: block;
+  color: var(--ok);
+}
+
+/* sans WebGL 2 : porte fermée, lien retiré, message clair */
+.door-off {
+  display: none;
+  max-width: 64ch;
+  margin: 20px 0 0;
+  padding: 12px 16px;
+  border-left: 2px solid var(--crit);
+  background: color-mix(in srgb, var(--crit) 8%, transparent);
+  font: 400 13.5px/1.55 var(--font-mono);
+}
+
+.no-webgl .door-off {
+  display: block;
+}
+
+.no-webgl .reader-wait {
+  display: none;
+}
+
+.no-webgl .reader-off {
+  display: block;
+  color: var(--crit);
+}
+
+.no-webgl .reader-led {
+  background: var(--led-crit);
+  box-shadow: none;
+}
+
+.no-webgl .door-glow {
+  opacity: 0;
+}
+
+.no-webgl .needs-webgl {
+  display: none !important;
+}
+
+/* extinction cathodique avant la navigation vers la 3D */
+.crt-off {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.crt-off i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: block;
+  background: #000;
+}
+
+.crt-off .crt-t {
+  top: 0;
+  height: 50.2%;
+  transform: translateY(-100%);
+}
+
+.crt-off .crt-b {
+  bottom: 0;
+  height: 50.2%;
+  transform: translateY(100%);
+}
+
+.crt-off .crt-line {
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: #dff9ff;
+  box-shadow: 0 0 24px 4px rgb(92 225 255 / 0.8);
+  opacity: 0;
+}
