@@ -53,25 +53,3 @@ export function cvInfo(): { bytes: number; label: string; short: string } {
   const short = kb < 1024 ? `${Math.max(1, Math.round(kb))}K` : `${(kb / 1024).toFixed(1)}M`;
   return { bytes, label: `PDF, ${size}`, short };
 }
-
-// ── texte découpé pour les révélations ─────────────────────────────────────
-// Le vrai texte est en `.sr-only` (lu une seule fois), la version découpée est `aria-hidden`.
-/** Découpe un texte en mots puis en caractères. */
-export function splitChars(text: string): string {
-  return text
-    .split(/\s+/)
-    .filter(Boolean)
-    .map(
-      (w) =>
-        `<span class="w">${[...w].map((c) => `<span class="c">${esc(c)}</span>`).join('')}</span>`,
-    )
-    .join(' ');
-}
-
-/** Titre accessible + calque visuel découpé. */
-export const split = (text: string): string =>
-  `<span class="sr-only">${esc(text)}</span><span class="split" aria-hidden="true">${splitChars(text)}</span>`;
-
-/** Étiquette mono « déchiffrable » : le calque animé est masqué aux lecteurs d'écran. */
-export const scr = (text: string): string =>
-  `<span class="sr-only">${esc(text)}</span><span class="scr" aria-hidden="true">${esc(text)}</span>`;

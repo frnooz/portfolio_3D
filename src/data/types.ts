@@ -36,6 +36,14 @@ export interface Project {
   links: ProjectLink[];
   /** Points marquants (optionnel), affichés en liste. */
   highlights?: string[];
+  /**
+   * Capture du projet (optionnel), affichée dans l'écran de la carte.
+   * Chemin relatif au dossier `public/` (ex : `projets/ubertaxi.webp`), format paysage ~16:10.
+   * Sans capture, l'écran affiche un terminal généré depuis les données.
+   */
+  cover?: string;
+  /** Texte alternatif de la capture (obligatoire si `cover` est renseigné). */
+  coverAlt?: string;
 }
 
 export type SkillLevel = 'solide' | 'pratique' | 'apprentissage';

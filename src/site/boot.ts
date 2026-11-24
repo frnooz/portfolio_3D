@@ -1,211 +1,177 @@
 /**
- * Page 2D — script de base, chargé tout de suite (petit, sans librairie).
- * La page est complète sans lui : il ajoute l'horloge, le menu, la copie d'e-mail, la fiche projet,
- * les câbles, l'indicateur de section… puis charge le motion design APRÈS le premier rendu.
+ * Page 2D — un seul petit script, sans librairie.
+ * La page est complète sans lui ; il ajoute :
+ *  - l'apparition douce des blocs au scroll (jamais en animations réduites)
+ *  - la fiche projet en <dialog> natif
+ *  - la copie de l'e-mail (annoncée aux lecteurs d'écran)
+ *  - la section courante dans la navigation
+ *  - la porte du sas (et son repli sans WebGL 2)
  */
 import '../styles/tokens.css';
-import './styles/base.css';
-import './styles/hero.css';
-import './styles/noc.css';
-import './styles/aisle.css';
-import './styles/patch.css';
-import './styles/ticket.css';
-import './styles/door.css';
-import './styles/fx.css';
-import './styles/print.css';
-import { hasWebGL, store } from '../shared/env';
-import { emit, scroller } from './scroll';
-import { initSheets } from './sheet';
-import { initPatch } from './patch';
+import './site.css';
+import { hasWebGL } from '../shared/env';
 
 const root = document.documentElement;
-root.classList.add('enh');
-const rmQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-const reduced = () => rmQuery.matches;
-const $ = <T extends Element = HTMLElement>(s: string) => document.querySelector<T>(s);
-const $$ = <T extends Element = HTMLElement>(s: string) => [...document.querySelectorAll<T>(s)];
+const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = <T extends Element = HTMLElement>(s: string, r: ParentNode = document) => r.querySelector<T>(s);
+const $$ = <T extends Element = HTMLElement>(s: string, r: ParentNode = document) => [...r.querySelectorAll<T>(s)];
 
-// ── horloge réelle (barre d'état) ─────────────────────────────────────────
+// ── apparition au scroll ──────────────────────────────────────────────────
 {
-  const wrap = $('.sb-clock');
-  const el = $('.clock');
-  if (wrap && el) {
-    const fmt = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    let timer = 0;
-    const tick = () => {
-      el.textContent = fmt.format(new Date());
-      timer = window.setTimeout(tick, 1000 - (Date.now() % 1000) + 5);
-    };
-    wrap.hidden = false;
-    tick();
-    document.addEventListener('visibilitychange', () => {
-      clearTimeout(timer);
-      if (!document.hidden) tick();
-    });
+  const items = $$('.reveal, .card');
+  // décalage léger entre les cartes d'une même rangée
+  $$('.cards > .card').forEach((c, i) => c.style.setProperty('--delay', `${(i % 2) * 0.08}s`));
+  if (reduced() || !('IntersectionObserver' in window)) {
+    items.forEach((el) => el.classList.add('in'));
+  } else {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const en of entries) {
+          if (!en.isIntersecting) continue;
+          en.target.classList.add('in');
+          io.unobserve(en.target);
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
+    );
+    items.forEach((el) => io.observe(el));
   }
 }
 
-// ── menu mobile ───────────────────────────────────────────────────────────
-const hd = $('.hd')!;
-const menuBtn = $<HTMLButtonElement>('.hd-menu')!;
-const setMenu = (open: boolean) => {
-  hd.classList.toggle('open', open);
-  menuBtn.setAttribute('aria-expanded', String(open));
-};
-menuBtn.addEventListener('click', () => setMenu(!hd.classList.contains('open')));
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && hd.classList.contains('open')) {
-    setMenu(false);
-    menuBtn.focus();
-  }
-});
-document.addEventListener('click', (e) => {
-  if (hd.classList.contains('open') && !hd.contains(e.target as Node)) setMenu(false);
-});
+// ── WCAG 2.2.2 : les LEDs clignotent 5 s puis se figent ──────────────────
+window.setTimeout(() => root.classList.add('still'), 5000);
 
-// ── pause globale des animations (WCAG 2.2.2) ─────────────────────────────
+// ── section courante dans la pilule ───────────────────────────────────────
 {
-  const btn = $<HTMLButtonElement>('.hd-motion')!;
-  const sync = () => btn.setAttribute('aria-pressed', String(root.classList.contains('motion-off')));
-  sync();
-  btn.addEventListener('click', () => {
-    const off = !root.classList.contains('motion-off');
-    root.classList.toggle('motion-off', off);
-    store.set('dc01-motion', off ? 'off' : 'on');
-    sync();
-    emit('dc:motion', !off);
-  });
-}
-
-// ── ancres internes : défilement + focus sur le titre de la section ──────
-document.addEventListener('click', (e) => {
-  const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#"]');
-  if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
-  const id = decodeURIComponent(a.hash.slice(1));
-  const target = id && document.getElementById(id);
-  if (!target || a.classList.contains('skip-link')) return;
-  e.preventDefault();
-  setMenu(false);
-  scroller.to(target, !reduced());
-  history.pushState(null, '', `#${id}`);
-  const focusable = target.matches('section') ? target.querySelector<HTMLElement>('h1, h2[tabindex]') : null;
-  (focusable ?? target).focus({ preventScroll: true });
-});
-// le h1 sert de cible au lien « haut de page »
-$('.hero-name')?.setAttribute('tabindex', '-1');
-
-// ── section courante : header « 03/06 — PROJETS », aria-current, rail ────
-{
-  const sections = $$('main > section[data-n]');
-  const where = { n: $('.hd-n')!, l: $('.hd-l')! };
   const links = $$<HTMLAnchorElement>('[data-nav]');
-  let current = '';
   const io = new IntersectionObserver(
     (entries) => {
       for (const en of entries) {
         if (!en.isIntersecting) continue;
-        const s = en.target as HTMLElement;
-        if (s.id === current) continue;
-        current = s.id;
-        where.n.textContent = s.dataset.n!;
-        where.l.textContent = s.dataset.label!;
         for (const l of links) {
-          if (l.dataset.nav === s.id) l.setAttribute('aria-current', 'true');
+          if (l.dataset.nav === en.target.id) l.setAttribute('aria-current', 'true');
           else l.removeAttribute('aria-current');
         }
-        emit('dc:section', s.id);
       }
     },
     { rootMargin: '-45% 0px -54% 0px' },
   );
-  sections.forEach((s) => io.observe(s));
-
-  // rail : un repère qui descend de U42 à U01 avec la progression
-  const mark = $('.rail-mark');
-  const u = $('.rail-u');
-  const scale = $('.rail-scale');
-  if (mark && u && scale) {
-    let raf = 0;
-    let lastU = '';
-    const update = () => {
-      raf = 0;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-      const room = scale.clientHeight - mark.offsetHeight;
-      mark.style.transform = `translate3d(0, ${(p * room).toFixed(1)}px, 0)`;
-      const label = `U${String(42 - Math.round(p * 41)).padStart(2, '0')}`;
-      if (label !== lastU) u.textContent = lastU = label;
-    };
-    const req = () => (raf ||= requestAnimationFrame(update));
-    window.addEventListener('scroll', req, { passive: true });
-    window.addEventListener('resize', req);
-    update();
-  }
+  $$('main > section[id]').forEach((s) => io.observe(s));
 }
 
-// ── bandeau d'état : en pause hors écran ──────────────────────────────────
-{
-  const track = $('.mq-track');
-  if (track) {
-    new IntersectionObserver(([en]) => track.classList.toggle('paused', !en.isIntersecting)).observe(track);
-  }
-}
-
-// ── copier l'e-mail (toast annoncé aux lecteurs d'écran) ──────────────────
-{
-  const toastEl = $('.toast')!;
-  let t = 0;
-  const toast = (msg: string) => {
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(t);
-    t = window.setTimeout(() => {
-      toastEl.classList.remove('show');
-      t = window.setTimeout(() => (toastEl.textContent = ''), 400);
-    }, 3200);
-  };
-  for (const btn of $$<HTMLButtonElement>('[data-copy]')) {
-    btn.addEventListener('click', async () => {
-      const value = btn.dataset.copy!;
-      try {
-        await navigator.clipboard.writeText(value);
-        toast(`Adresse e-mail copiée : ${value}`);
-      } catch {
-        // repli : sélectionne l'adresse pour une copie manuelle
-        const link = btn.parentElement?.querySelector('a');
-        if (link) window.getSelection()?.selectAllChildren(link);
-        toast('Copie automatique impossible : l’adresse est sélectionnée, fais Ctrl + C.');
-      }
-    });
-  }
-}
-
-// ── fiche projet + câbles de brassage ─────────────────────────────────────
-initSheets(reduced);
-initPatch();
-
-// ── WebGL 2 : sans lui, la porte reste fermée et le lien 3D disparaît ─────
-const idle = (cb: () => void) =>
-  typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(cb, { timeout: 1500 }) : globalThis.setTimeout(cb, 300);
-
-idle(() => {
-  if (hasWebGL()) return;
-  root.classList.add('no-webgl');
-  const door = $<HTMLAnchorElement>('.door');
-  // un <a> sans href n'est plus un lien : ni focus, ni lien mort
-  door?.removeAttribute('href');
+// ── ancres : le focus suit le défilement (lecteurs d'écran, clavier) ──────
+document.addEventListener('click', (e) => {
+  const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#"]');
+  if (!a || a.classList.contains('skip-link') || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+  const target = document.getElementById(decodeURIComponent(a.hash.slice(1)));
+  if (!target) return;
+  e.preventDefault();
+  target.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+  history.pushState(null, '', a.hash);
+  const heading = target.querySelector<HTMLElement>('h1[tabindex], h2[tabindex]');
+  (heading ?? target).focus({ preventScroll: true });
 });
 
-const notice = $('#notice');
-if (notice && new URLSearchParams(window.location.search).get('raison') === 'webgl') {
-  notice.textContent =
-    "WebGL 2 n'est pas disponible sur cet appareil : la salle 3D ne peut pas démarrer. Tout le contenu est sur cette page.";
-  notice.hidden = false;
+// ── toast ─────────────────────────────────────────────────────────────────
+const toastEl = $('.toast')!;
+let toastTimer = 0;
+function toast(msg: string) {
+  toastEl.textContent = msg;
+  requestAnimationFrame(() => toastEl.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    toastEl.classList.remove('show');
+    toastTimer = window.setTimeout(() => (toastEl.textContent = ''), 400);
+  }, 3000);
 }
 
-// ── motion design : chargé après le premier rendu, jamais en reduced-motion ──
-if (reduced()) {
-  import('./wall').then((m) => m.staticWall());
-} else {
-  import('./motion').then((m) => m.startMotion());
+// ── copier l'e-mail ───────────────────────────────────────────────────────
+for (const btn of $$<HTMLButtonElement>('[data-copy]')) {
+  btn.addEventListener('click', async () => {
+    const value = btn.dataset.copy!;
+    try {
+      await navigator.clipboard.writeText(value);
+      toast(`Adresse copiée : ${value}`);
+    } catch {
+      const link = btn.parentElement?.querySelector('a');
+      if (link) window.getSelection()?.selectAllChildren(link);
+      toast('Copie automatique impossible : l’adresse est sélectionnée, fais Ctrl + C.');
+    }
+  });
+}
+
+// ── fiche projet (dialog natif : focus piégé, Échap, retour du focus) ─────
+{
+  const dlg = document.createElement('dialog');
+  dlg.className = 'sheet';
+  dlg.setAttribute('aria-labelledby', 'sheet-title');
+  dlg.innerHTML = `<div class="sheet-in">
+    <div class="sheet-head"><div><p class="card-meta"></p><h2 id="sheet-title" tabindex="-1"></h2></div>
+    <button class="sheet-close" type="button"><span class="sr-only">Fermer la fiche</span><span aria-hidden="true">×</span></button></div>
+    <div class="sheet-body"></div></div>`;
+  document.body.append(dlg);
+  const title = $('#sheet-title', dlg)!;
+  const meta = $('.card-meta', dlg)!;
+  const body = $('.sheet-body', dlg)!;
+  let trigger: HTMLElement | null = null;
+
+  const open = (id: string, from: HTMLElement | null) => {
+    const card = document.getElementById(id);
+    if (!card) return;
+    trigger = from;
+    meta.replaceChildren(...$$('.card-meta > *', card).map((n) => n.cloneNode(true)));
+    title.textContent = $('.card-title', card)?.textContent ?? '';
+    body.replaceChildren(
+      ...['.card-tag', '.card-ctx', '.tags', '.card-detail']
+        .map((s) => $(s, card))
+        .filter((n): n is HTMLElement => !!n)
+        .map((n) => n.cloneNode(true)),
+    );
+    dlg.showModal();
+    title.focus();
+    history.replaceState(null, '', `#${id}`);
+  };
+  const close = () => dlg.close();
+  dlg.addEventListener('close', () => {
+    history.replaceState(null, '', location.pathname + location.search);
+    trigger?.focus();
+  });
+  dlg.addEventListener('click', (e) => {
+    if (e.target === dlg || (e.target as Element).closest('.sheet-close')) close();
+  });
+  for (const b of $$<HTMLButtonElement>('[data-open]')) b.addEventListener('click', () => open(b.dataset.open!, b));
+  // lien direct vers un projet (#ubertaxi) : on ouvre sa fiche
+  const hash = decodeURIComponent(location.hash.slice(1));
+  if (hash && $(`[data-open="${CSS.escape(hash)}"]`)) open(hash, $(`[data-open="${CSS.escape(hash)}"]`));
+}
+
+// ── WebGL 2 et porte du sas ───────────────────────────────────────────────
+{
+  const door = $<HTMLAnchorElement>('.door');
+  const idle = (cb: () => void) =>
+    typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(cb, { timeout: 1500 }) : globalThis.setTimeout(cb, 300);
+  idle(() => {
+    if (hasWebGL()) return;
+    root.classList.add('no-webgl');
+    door?.removeAttribute('href'); // plus un lien : ni focus, ni lien mort
+  });
+
+  door?.addEventListener('click', (e) => {
+    if (reduced() || e.metaKey || e.ctrlKey || e.shiftKey || !door.href) return;
+    e.preventDefault();
+    door.classList.add('opening');
+    window.setTimeout(() => document.body.classList.add('leaving'), 420);
+    window.setTimeout(() => (location.href = door.href), 800);
+  });
+  // retour arrière depuis la 3D (bfcache) : on referme la porte
+  window.addEventListener('pageshow', () => {
+    door?.classList.remove('opening');
+    document.body.classList.remove('leaving');
+  });
+
+  const notice = $('#notice');
+  if (notice && new URLSearchParams(location.search).get('raison') === 'webgl') {
+    notice.textContent = "WebGL 2 n'est pas disponible sur cet appareil : la salle 3D ne peut pas démarrer. Tout le contenu est sur cette page.";
+    notice.hidden = false;
+  }
 }
