@@ -13,17 +13,21 @@ const { url, close } = await serve(4322);
 const browser = await chromium.launch(launchOptions());
 let failures = 0;
 
-for (const path of ['', 'cv/', 'classique/']) {
+// /classique/ n'est qu'une redirection : on vérifie qu'elle aboutit sur /
+{
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  await page.goto(url + 'classique/#projets', { waitUntil: 'networkidle' });
+  console.log(`redirection /classique/#projets → ${page.url().replace(url, '/')}`);
+  await ctx.close();
+}
+
+for (const path of ['', 'cv/']) {
   for (const colorScheme of ['dark', 'light']) {
     for (const reducedMotion of ['no-preference', 'reduce']) {
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme, reducedMotion });
       const page = await ctx.newPage();
       await page.goto(url + path, { waitUntil: 'networkidle' });
-      if (path === 'classique/') {
-        console.log(`redirection /classique/ → ${page.url().replace(url, '/')}`);
-        await ctx.close();
-        break;
-      }
       // parcours complet pour déclencher toutes les révélations
       await page.waitForTimeout(1500);
       const h = await page.evaluate(() => document.documentElement.scrollHeight);
