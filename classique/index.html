@@ -3,41 +3,22 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Noah Guglielmino — portfolio, version classique</title>
-    <meta name="description" content="Projets, compétences et CV de Noah Guglielmino, étudiant en BUT Réseaux &amp; Télécoms parcours DevCloud — version classique, accessible et sans animation.">
-    <meta name="theme-color" content="#06080a">
-    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <title>Redirection — Noah Guglielmino</title>
+    <meta name="robots" content="noindex">
+    <!-- l'ancienne version classique est devenue la page d'accueil : on garde l'ancre (#projets…) -->
+    <script>window.location.replace('../' + window.location.hash);</script>
+    <meta http-equiv="refresh" content="0; url=../">
+    <style>
+      html { color-scheme: dark light; }
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #06080a; color: #e8edf1; font: 16px/1.6 ui-monospace, Menlo, Consolas, monospace; }
+      a { color: #5ce1ff; }
+      @media (prefers-color-scheme: light) { body { background: #f3f4f1; color: #0e1215; } a { color: #006a85; } }
+    </style>
   </head>
-  <body class="classic">
-    <a class="skip-link" href="#contenu">Aller au contenu</a>
-
-    <header class="c-head">
-      <a class="c-brand" href="../"><span class="c-tag">DC-01</span><span>Accueil</span></a>
-      <nav class="c-nav" aria-label="Sections de la page">
-        <ul>
-          <li><a href="#a-propos">À propos</a></li>
-          <li><a href="#projets">Projets</a></li>
-          <li><a href="#competences">Compétences</a></li>
-          <li><a href="#cv">CV</a></li>
-          <li><a href="#contact">Contact</a></li>
-        </ul>
-      </nav>
-      <a class="c-3d needs-webgl" href="../3d/?choix=3d">Explorer en 3D <span aria-hidden="true">→</span></a>
-    </header>
-
-    <main id="contenu" class="c-main" tabindex="-1">
-      <div class="c-hero">
-        <h1>Noah Guglielmino</h1>
-        <p class="c-sub">Version classique — tout le contenu de la salle serveur, sans 3D.</p>
-        <p id="notice" class="notice" role="status" hidden></p>
-      </div>
-      <!--CLASSIC-->
+  <body>
+    <main>
+      <h1>La version classique a déménagé</h1>
+      <p>Tout le portfolio est désormais sur la page d'accueil. <a href="../">Aller au portfolio</a></p>
     </main>
-
-    <footer class="c-foot">
-      <p>© 2026 Noah Guglielmino · <a href="../">Accueil</a> · <a class="needs-webgl" href="../3d/?choix=3d">Salle serveur 3D</a></p>
-    </footer>
-
-    <script type="module" src="../src/classic/main.ts"></script>
   </body>
 </html>

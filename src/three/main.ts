@@ -8,8 +8,8 @@ import { skillDomains } from '../data/skills';
 
 /**
  * Point d'entrée de la salle 3D.
- * 1. pas de WebGL 2 → version classique, direct
- * 2. animations réduites demandées → on propose la version classique (sauf choix explicite)
+ * 1. pas de WebGL 2 → version 2D, direct
+ * 2. animations réduites demandées → on propose la version 2D (sauf choix explicite)
  * 3. écran de boot pendant le chargement réel de three.js et de la scène
  */
 
@@ -32,7 +32,7 @@ function reducedMotionGate(): Promise<void> {
 
 async function run() {
   if (!hasWebGL()) {
-    window.location.replace('../classique/?depuis=3d&raison=webgl');
+    window.location.replace('../?depuis=3d&raison=webgl');
     return;
   }
   if (prefersReducedMotion() && params.get('choix') !== '3d') await reducedMotionGate();
@@ -83,7 +83,7 @@ void run().catch((err) => {
   if (log) {
     log.insertAdjacentHTML(
       'beforeend',
-      `<div class="bl bl-warn">[FAILED] La salle n'a pas pu démarrer. <a href="../classique/">Ouvrir la version classique</a></div>`,
+      `<div class="bl bl-warn">[FAILED] La salle n'a pas pu démarrer. <a href="../">Ouvrir la version 2D</a></div>`,
     );
   }
 });

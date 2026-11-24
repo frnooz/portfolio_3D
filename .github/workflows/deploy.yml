@@ -26,6 +26,8 @@ jobs:
       - run: npm run build
       # html-validate + validateur W3C (Java est préinstallé sur les runners Ubuntu)
       - run: npm run validate
+      # JS de la page 2D ≤ 80 Ko gzip, librairies comprises
+      - run: npm run budget
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:

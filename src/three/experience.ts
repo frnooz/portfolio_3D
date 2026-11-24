@@ -136,7 +136,7 @@ export class Experience {
     this.post = new Post(this.renderer, this.scene, this.rig.camera, isCoarsePointer() ? 1 : 2);
     this.post.onChange = (level: QualityLevel, dpr: number) => this.atmosphere.setQuality(level, dpr);
     this.post.onStruggle = () =>
-      this.toast.show('Ton appareil a du mal avec la 3D — la version classique est dispo en haut à droite.', 'warn', 7000);
+      this.toast.show('Ton appareil a du mal avec la 3D — la version 2D est dispo en haut à droite.', 'warn', 7000);
     this.atmosphere.setQuality(this.post.level, this.post.dpr);
 
     // son : coupé par défaut, choix mémorisé (mais jamais relancé sans geste de l'utilisateur)
