@@ -56,16 +56,6 @@ export function cvInfo(): { bytes: number; label: string; short: string } {
 
 // ── texte découpé pour les révélations ─────────────────────────────────────
 // Le vrai texte est en `.sr-only` (lu une seule fois), la version découpée est `aria-hidden`.
-// Chaque caractère porte un glyphe de « déchiffrement » tiré au hasard, mais de façon déterministe
-// (même build → même HTML).
-const GLYPHS = '#%&*+/<=>?@[]{}01ABCDEFHKMNRSTXZ$';
-let seed = 7;
-const rnd = (): number => {
-  seed = (seed * 16807) % 2147483647;
-  return seed / 2147483647;
-};
-const glyph = (): string => GLYPHS[Math.floor(rnd() * GLYPHS.length)];
-
 /** Découpe un texte en mots puis en caractères. */
 export function splitChars(text: string): string {
   return text
@@ -73,7 +63,7 @@ export function splitChars(text: string): string {
     .filter(Boolean)
     .map(
       (w) =>
-        `<span class="w">${[...w].map((c) => `<span class="c" data-g="${esc(glyph())}">${esc(c)}</span>`).join('')}</span>`,
+        `<span class="w">${[...w].map((c) => `<span class="c">${esc(c)}</span>`).join('')}</span>`,
     )
     .join(' ');
 }

@@ -55,7 +55,8 @@ function head(id: SectionId, lede?: string): string {
 
 const sectionAttrs = (id: SectionId) => {
   const s = sec(id);
-  return `id="${s.id}" class="sec sec-${s.id}" aria-labelledby="h-${s.id}" data-n="${s.n}" data-label="${esc(s.label)}" data-u="${s.u[0]}"`;
+  const dark = id === 'accueil' || id === 'acces' ? ' zone-dark' : '';
+  return `id="${s.id}" class="sec sec-${s.id}${dark}" aria-labelledby="h-${s.id}" data-n="${s.n}" data-label="${esc(s.label)}" data-u="${s.u[0]}"`;
 };
 
 // ── préchargement (POST) ───────────────────────────────────────────────────
@@ -95,7 +96,7 @@ function renderHeader(): string {
     <ul>${nav}</ul>
     <ul class="hd-aux">
       <li><a class="hd-cv" href="./cv/">CV</a></li>
-      <li class="needs-webgl"><a class="hd-3d" href="./3d/?choix=3d">3D<span class="sr-only"> : salle serveur</span><span class="arr" aria-hidden="true">↗</span></a></li>
+      <li class="needs-webgl"><a class="hd-3d" href="./3d/?choix=3d">3D<span class="sr-only"> : salle serveur</span><span class="arr" aria-hidden="true">→</span></a></li>
       <li class="hd-motion-li"><button class="hd-motion" type="button" aria-pressed="false"><span class="led" aria-hidden="true"></span><span class="hd-motion-t">Animations</span><span class="sr-only"> : mettre en pause</span></button></li>
     </ul>
   </nav>

@@ -8,7 +8,7 @@ une porte de sas qui ouvre sur la **salle 3D** où l'on pilote un robot de maint
 
 | Allée A — projets | Panneau de brassage — compétences |
 | --- | --- |
-| ![Les projets en lames de serveur, défilement horizontal](docs/2d-projets.jpg) | ![Les compétences en ports RJ45, câbles tracés au scroll](docs/2d-brassage.jpg) |
+| ![Les projets en lames de serveur, défilement horizontal](docs/2d-projets.jpg) | ![Les compétences en ports RJ45, câbles tirés à l'arrivée](docs/2d-brassage.jpg) |
 
 | Le sas vers la 3D | La salle 3D |
 | --- | --- |
@@ -119,7 +119,7 @@ scripts/                 vérifications (captures, axe, Lighthouse, budget)
 | — | Préchargement | POST de serveur (première visite, ≤ 1,2 s), passable avec Entrée, Échap, Espace ou un clic. |
 | 01 | Hero | Nom révélé lettre par lettre par une scanline ; mur de baies aux LEDs vivantes, en parallaxe ; barre d'état (DC-01 · services en ligne · heure réelle) ; bandeau d'état qui défile. |
 | 02 | À propos = NOC | Facts en tuiles, terminal `whoami` qui se tape, compteurs, topologie réseau où circulent des paquets. |
-| 03 | Projets = allée A | Une lame de serveur par projet (A-01…), LED et statut écrit ; baies vides à LED ambre qui pulse ; fiche détaillée en `<dialog>`. |
+| 03 | Projets = allée A | Une lame de serveur par projet (A-01…), LED, statut écrit et extrait de la description ; emplacements libres en baies étroites à LED ambre qui pulse ; fiche complète en `<dialog>`. |
 | 04 | Compétences = brassage | Un port RJ45 par compétence, niveau écrit en toutes lettres ; câbles qui se tracent au scroll ; survol ou focus d'un port → son câble s'allume. |
 | 05 | Contact = ticket | mailto, liens, copie de l'e-mail avec toast annoncé aux lecteurs d'écran, lien vers le CV. |
 | 06 | Accès au datacenter | Porte de sas, bandes de chantier, lecteur de badge ; au clic, ouverture puis extinction cathodique, puis `./3d/?choix=3d`. |
@@ -131,14 +131,14 @@ Un rail de baie fixe (U42 → U01) suit la progression, et le header indique la 
 
 | Effet | Technique |
 | --- | --- |
-| Révélation du nom | Un bloc de « déchiffrement » balaie chaque lettre au passage de la scanline (le délai suit la position x réelle de la lettre). |
-| Titres de section | Scanline verticale, puis caractères en cascade ; métadonnées mono déchiffrées. |
+| Révélation du nom | Un curseur cyan s'allume au bord de chaque lettre au passage de la scanline (le délai suit la position x réelle de la lettre). |
+| Titres de section | Fin filet de scanline, puis chaque lettre monte depuis sa ligne de base avec le curseur ; métadonnées mono qui se remplissent en hexadécimal. |
 | Terminal | Frappe **100 % transform** : un cache se déplace par paliers `steps(n)` au-dessus d'un texte déjà présent. |
 | Compteurs | De 00 à N, chiffres tabulaires (aucun saut de largeur). |
 | Paquets réseau | Chemins échantillonnés en keyframes `translate` (Web Animations API) : composités, aucun JS par image. |
 | Allée A (desktop) | `position: sticky` + translation horizontale liée au scroll ; chaque lame sort du rack et sa LED s'allume. |
 | Fiche projet | View Transitions API (la lame se transforme en fiche) ; sinon une courte animation transform/opacity. |
-| Câbles | `stroke-dashoffset` lié au scroll (seule exception à « transform + opacity » : petit SVG, aucun recalcul de mise en page). |
+| Câbles | Tirés un par un (`stroke-dashoffset`, 1,1 s) quand le panneau entre à l'écran — jamais à moitié posés. Seule exception à « transform + opacity » : petit SVG, aucun recalcul de mise en page. |
 | Porte du sas | Vantaux en translate, lueur en opacity ; extinction cathodique par deux volets et une ligne qui se réduit en point. |
 | Réticule | Suit le pointeur avec ses coordonnées de page ; seulement avec un pointeur fin, **sans jamais masquer le curseur natif**. |
 | Divers | Boutons magnétiques, header dont le numéro « roule », grain très léger, scroll fluide (Lenis). |

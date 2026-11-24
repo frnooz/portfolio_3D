@@ -1,6 +1,7 @@
 /** Effets de texte : déchiffrement (calques aria-hidden uniquement) et compteurs. */
 
-const GLYPHS = '#%&*+/<=>?@[]01ABCDEFHKMNRSTXZ$';
+// hexadécimal uniquement : ça se lit comme un registre qui se remplit, pas comme un bug d'affichage
+const GLYPHS = '0123456789ABCDEF';
 
 /** Remplace progressivement des glyphes aléatoires par le texte final, de gauche à droite. */
 export function scramble(el: HTMLElement, dur = 700, delay = 0): void {

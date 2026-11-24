@@ -17,10 +17,24 @@
 }
 
 @media (min-width: 56em) {
+  /* porte + lecteur de badge = un seul mur : même hauteur, bandes de chantier continues */
   .door {
-    grid-template-columns: minmax(0, 1fr) 180px;
-    align-items: center;
-    gap: 28px;
+    grid-template-columns: minmax(0, 1fr) 190px;
+    align-items: stretch;
+    row-gap: 28px;
+    column-gap: 0;
+  }
+
+  .door .reader {
+    --hz: clamp(14px, 2.4vw, 26px);
+    align-content: center;
+    padding: calc(var(--hz) + 20px) 22px;
+    border-left: 0;
+    background:
+      repeating-linear-gradient(-45deg, var(--hazard) 0 14px, #0b0c0d 14px 28px) top / 100% var(--hz) no-repeat,
+      repeating-linear-gradient(-45deg, var(--hazard) 0 14px, #0b0c0d 14px 28px) bottom / 100% var(--hz) no-repeat,
+      linear-gradient(90deg, rgb(0 0 0 / 0.35), transparent 30%),
+      var(--bg-1);
   }
 }
 

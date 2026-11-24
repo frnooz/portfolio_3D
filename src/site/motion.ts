@@ -283,21 +283,26 @@ function patchCables(): void {
   const arm = () => {
     for (const [dom, paths] of cables) {
       const prev = tweens.get(dom);
-      const progress = prev?.scrollTrigger?.progress ?? 0;
+      // déjà tirés (ou en cours) : un recalcul de mise en page ne doit pas les effacer
+      const done = !!prev && (prev.progress() > 0 || prev.scrollTrigger?.progress === 1);
       prev?.scrollTrigger?.kill();
       prev?.kill();
       for (const p of paths) {
         const len = p.getTotalLength();
         p.style.strokeDasharray = `${len}`;
-        p.style.strokeDashoffset = `${len * (1 - progress)}`;
+        p.style.strokeDashoffset = done ? '0' : `${len}`;
       }
+      if (done) continue;
+      // tirés d'un coup, câble après câble, quand le panneau entre à l'écran :
+      // un tracé lié au scroll laissait des câbles à moitié posés dès qu'on s'arrêtait
       tweens.set(
         dom,
         gsap.to(paths, {
           strokeDashoffset: 0,
-          ease: 'none',
-          stagger: 0.04,
-          scrollTrigger: { trigger: dom, start: 'top 82%', end: 'bottom 75%', scrub: 0.6 },
+          duration: 1.1,
+          ease: 'power2.inOut',
+          stagger: 0.07,
+          scrollTrigger: { trigger: dom, start: 'top 75%', once: true },
         }),
       );
     }

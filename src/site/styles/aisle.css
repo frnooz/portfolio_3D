@@ -138,8 +138,26 @@
   font-size: 16px;
 }
 
+/* avec JS, la lame montre un extrait (premier paragraphe, 4 lignes) ; la fiche complète s'ouvre en dialog */
 .enh .blade .blade-detail {
+  order: 1;
+}
+
+.enh .blade .blade-detail > :not(p:first-child) {
   display: none;
+}
+
+.enh .blade .blade-detail > p:first-child {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.enh .blade .blade-open {
+  order: 2;
 }
 
 .blade-detail p {
@@ -205,17 +223,23 @@
   color: var(--text-2);
 }
 
+/* le bas de l'écran épinglé sert déjà de respiration avant la section suivante */
+.hz .sec-projets {
+  padding-bottom: 0;
+}
+
 /* ── desktop animé : section épinglée, défilement horizontal (classe posée par le JS) ── */
 .hz .aisle-view {
   position: sticky;
   top: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   height: 100vh;
   height: 100svh;
   max-width: none;
-  padding: calc(var(--hdr) + 20px) 0 28px;
+  /* contenu calé en haut (sous le header) : pas de grand vide entre le titre et le rack */
+  padding: calc(var(--hdr) + clamp(20px, 4vh, 44px)) 0 28px;
   overflow: clip;
 }
 
@@ -250,16 +274,36 @@
 
 .hz .rack {
   display: flex;
+  align-items: stretch;
   gap: 20px;
   width: max-content;
-  height: min(620px, calc(100% - 44px));
+  height: min(600px, calc(100svh - var(--hdr) - 150px));
   padding-inline: max(var(--gx), calc((100vw - var(--rail) - var(--maxw)) / 2 + var(--gx)));
   will-change: transform;
 }
 
 .hz .bay {
   flex: none;
-  width: clamp(340px, 27vw, 430px);
+  width: clamp(360px, 29vw, 460px);
+}
+
+/* les emplacements libres sont des baies étroites : on ne traverse pas l'allée pour du vide */
+.hz .bay-slot {
+  width: clamp(220px, 15vw, 260px);
+}
+
+.hz .blade-slot .blade-face {
+  flex: 1;
+  border: 1px dashed var(--line);
+  background: repeating-linear-gradient(to bottom, transparent 0 17px, var(--line) 17px 18px);
+}
+
+.hz .blade-slot .blade-face i {
+  display: none;
+}
+
+.hz .bay-slot .blade-title {
+  font-size: clamp(20px, 1.5vw, 24px);
 }
 
 .hz .bay:not(.lit) .status .led {

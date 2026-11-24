@@ -57,7 +57,8 @@ export class Wall {
   }
 
   private css(name: string): string {
-    return getComputedStyle(document.body).getPropertyValue(name).trim() || '#888';
+    // lu sur le canvas lui-même : il hérite des jetons de sa zone (le hero reste sombre en thème clair)
+    return getComputedStyle(this.canvas).getPropertyValue(name).trim() || '#888';
   }
 
   layout(): void {

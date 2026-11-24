@@ -176,12 +176,24 @@
   opacity: 0;
 }
 
+/* chaque lettre monte depuis sa ligne de base, avec le curseur qui passe */
 .rv .sec-head.in .c {
-  animation: show 1ms linear calc(var(--i, 0) * 30ms + 220ms) both;
+  animation: rise 0.9s var(--ease) calc(var(--i, 0) * 26ms + 160ms) both;
 }
 
 .rv .sec-head.in .c::after {
-  animation: c-blk 0.42s linear calc(var(--i, 0) * 30ms + 220ms) both;
+  animation: c-blk 0.5s linear calc(var(--i, 0) * 26ms + 160ms) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.32em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .rv .sec-head.in .scan::before {
